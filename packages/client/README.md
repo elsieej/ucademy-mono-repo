@@ -1,14 +1,19 @@
 # @elsie/client
 
-Modern React frontend application for the Elsie platform.
+Modern React frontend application for the Elsie platform with end-to-end type safety.
 
 ## 🚀 Features
 
 - **React 19** - Latest React with improved performance
 - **TypeScript** - Type-safe development
 - **Vite 7** - Lightning-fast build tool and dev server
+- **TanStack Router** - Type-safe file-based routing
+- **TanStack Query** - Powerful data fetching and caching
+- **tRPC** - End-to-end type-safe APIs
+- **Tailwind CSS v4** - Utility-first CSS framework
+- **Radix UI + shadcn/ui** - Accessible and beautiful components
+- **Lucide React** - Modern icon library
 - **Hot Module Replacement** - Instant updates without page refresh
-- **Shared Types** - Type safety with `@elsie/models`
 - **ESLint & Prettier** - Code quality and formatting
 
 ## 🏗️ Project Structure
@@ -16,10 +21,17 @@ Modern React frontend application for the Elsie platform.
 ```
 src/
 ├── assets/          # Static assets (images, icons)
-├── App.tsx          # Main application component
-├── App.css          # Application styles
+├── components/      # Reusable components
+│   └── ui/          # shadcn/ui components
+├── constants/       # App configuration
+├── lib/             # Utility functions
+├── routes/          # File-based routes (TanStack Router)
+│   ├── __root.tsx   # Root layout
+│   ├── index.tsx    # Home page
+│   └── about.tsx    # About page
+├── routeTree.gen.ts # Auto-generated route tree
 ├── main.tsx         # Application entry point
-└── index.css        # Global styles
+└── index.css        # Global styles (Tailwind CSS)
 ```
 
 ## 🔧 Getting Started
@@ -34,6 +46,9 @@ src/
 ```bash
 # Start development server (from package root)
 pnpm dev
+
+# Watch and rebuild route tree (optional, runs in background)
+pnpm tsr:watch
 
 # Or run from monorepo root (runs all packages)
 cd ../.. && pnpm dev
@@ -79,44 +94,66 @@ Changes flow automatically: Models → Server → Client
 
 - **react** `^19.1.1` - UI library
 - **react-dom** `^19.1.1` - React DOM renderer
+- **@tanstack/react-router** - Type-safe routing
+- **@tanstack/react-query** - Data fetching and caching
+- **@trpc/client** - tRPC client for type-safe APIs
+- **tailwindcss** `^4.1.14` - Utility-first CSS
+- **@radix-ui/react-slot** - Radix UI primitives
+- **lucide-react** - Modern icon library
+- **class-variance-authority** - CVA for component variants
+- **clsx** & **tailwind-merge** - Class name utilities
 
 ### Dev Dependencies
 
 - **vite** - Build tool and dev server
 - **@vitejs/plugin-react** - React plugin for Vite
+- **@tanstack/router-cli** - TanStack Router CLI
+- **@tanstack/router-plugin** - Vite plugin for TanStack Router
 - **@types/react** - TypeScript types for React
 - **@types/react-dom** - TypeScript types for React DOM
-- **globals** - Global type definitions
+- **tw-animate-css** - Tailwind CSS animations
 
-## 🔗 Integration with Backend
+## 🔗 End-to-End Type Safety with tRPC
 
-The client connects to the backend API at **http://localhost:3000**.
+The client connects to the backend using **tRPC** for complete type safety:
 
-### Using Shared Types
-
-Import types and schemas from `@elsie/models` for type safety:
+### Setup tRPC Client
 
 ```typescript
-import { type Course } from '@elsie/models'
+import { createTRPCClient, httpBatchLink } from '@trpc/client'
+import type { AppRouter } from '@elsie/server'
 
-function CourseCard({ course }: { course: Course }) {
-  return (
-    <div>
-      <h2>{course.title}</h2>
-      <p>{course.description}</p>
-    </div>
-  )
+const trpc = createTRPCClient<AppRouter>({
+  links: [
+    httpBatchLink({
+      url: 'http://localhost:3000/trpc'
+    })
+  ]
+})
+```
+
+### Using tRPC with React Query
+
+```typescript
+import { useQuery } from '@tanstack/react-query'
+
+function HealthCheck() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['health'],
+    queryFn: () => trpc.health.check.query()
+  })
+
+  if (isLoading) return <div>Loading...</div>
+  return <div>Status: {data?.status}</div>
 }
 ```
 
-### Type Safety Across the Stack
+### Benefits
 
-During development:
-
-1. Update types in `@elsie/models`
-2. TypeScript watch automatically rebuilds
-3. Both client and server get updated types
-4. TypeScript errors show immediately in your IDE
+- ✅ **Full type safety** - No manual type definitions needed
+- ✅ **Auto-completion** - IDE knows all API endpoints and types
+- ✅ **Runtime safety** - Zod validates data at runtime
+- ✅ **Instant feedback** - TypeScript errors on API changes
 
 ## 🏗️ Building for Production
 
@@ -140,14 +177,57 @@ The project uses a dual tsconfig setup:
 
 This allows proper type-checking for both your app code and build configuration.
 
-## 🎨 Styling
+## 🎨 Styling with Tailwind CSS v4
 
-The project uses vanilla CSS. You can easily integrate:
+The project uses **Tailwind CSS v4** with the new Vite plugin:
 
-- **Tailwind CSS** - Utility-first CSS framework
-- **CSS Modules** - Scoped CSS
-- **Styled Components** - CSS-in-JS
-- **Emotion** - CSS-in-JS with great TypeScript support
+```tsx
+import { Button } from '@/components/ui/button'
+
+function MyComponent() {
+  return (
+    <div className='flex items-center gap-4 p-4'>
+      <Button variant='default'>Click me</Button>
+      <Button variant='outline'>Cancel</Button>
+    </div>
+  )
+}
+```
+
+### Features
+
+- ✅ **Tailwind CSS v4** - Latest version with Vite plugin
+- ✅ **shadcn/ui components** - Pre-built accessible components
+- ✅ **Radix UI primitives** - Unstyled, accessible components
+- ✅ **CVA** - Component variants with type safety
+- ✅ **Custom animations** - Via tw-animate-css
+
+## 🛣️ Routing with TanStack Router
+
+File-based routing with full type safety:
+
+```tsx
+// src/routes/index.tsx
+import { createFileRoute } from '@tanstack/react-router'
+
+export const Route = createFileRoute('/')({
+  component: HomePage
+})
+
+function HomePage() {
+  return <h1>Home Page</h1>
+}
+```
+
+### Route Tree Generation
+
+Routes are automatically generated from the file structure:
+
+- `src/routes/__root.tsx` → Root layout
+- `src/routes/index.tsx` → `/`
+- `src/routes/about.tsx` → `/about`
+
+Run `pnpm tsr:watch` during development for auto-generation.
 
 ## 🧪 Testing (Future)
 

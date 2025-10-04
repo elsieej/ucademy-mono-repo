@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "generate:migration": "drizzle-kit generate --config src/constants/drizzle-migrate.config.ts",
+    "generate:seed": "drizzle-kit generate --config src/constants/drizzle-seed.config.ts",
     "dev": "tsx --watch --watch-preserve-output src/index.ts",
     "build": "rimraf ./dist && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "lint": "eslint . --ext .ts",
@@ -11,6 +13,7 @@
   },
   "dependencies": {
     "@elsie/models": "workspace:*",
+    "@trpc/server": "^11.6.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.6",
@@ -23,8 +26,10 @@
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
+    "@types/express-serve-static-core": "^5.0.7",
     "@types/node": "^24.6.2",
     "@types/pg": "^8.15.5",
+    "@types/qs": "^6.14.0",
     "drizzle-kit": "^0.31.5",
     "rimraf": "^6.0.1",
     "tsc-alias": "^1.8.16",

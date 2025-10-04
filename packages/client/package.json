@@ -4,8 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "tsr:watch": "tsr watch",
+    "tsr:build": "tsr build",
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsr build && tsc -b && vite build",
     "lint": "eslint .",
     "format": "prettier --write src",
     "preview": "vite preview"
@@ -13,6 +15,11 @@
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
     "@tailwindcss/vite": "^4.1.14",
+    "@tanstack/react-query": "^5.90.2",
+    "@tanstack/react-query-devtools": "^5.90.2",
+    "@tanstack/react-router": "^1.132.33",
+    "@tanstack/react-router-devtools": "^1.132.33",
+    "@trpc/client": "^11.6.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.544.0",
@@ -22,6 +29,8 @@
     "tailwindcss": "^4.1.14"
   },
   "devDependencies": {
+    "@tanstack/router-cli": "^1.132.33",
+    "@tanstack/router-plugin": "^1.132.33",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.4",

@@ -20,18 +20,18 @@ elsie-monorepo/
 ## 📦 Packages
 
 ### [@elsie/client](./packages/client)
-React 19 frontend application built with Vite 7.
+Modern React 19 frontend with type-safe routing and API integration.
 
 - **Port:** `http://localhost:3001`
-- **Tech:** React, TypeScript, Vite
-- **Features:** Hot Module Replacement, Fast Refresh
+- **Tech:** React, TypeScript, Vite, TanStack Router, TanStack Query, tRPC, Tailwind CSS
+- **Features:** File-based routing, Type-safe APIs, React Query caching, Hot Module Replacement
 
 ### [@elsie/server](./packages/server)
-Express 5 backend API with PostgreSQL database.
+Express 5 backend API with tRPC and PostgreSQL database.
 
 - **Port:** `http://localhost:3000`
-- **Tech:** Express, PostgreSQL, Drizzle ORM, JWT
-- **Features:** Type-safe database queries, JWT authentication
+- **Tech:** Express, PostgreSQL, Drizzle ORM, tRPC, Pino, JWT
+- **Features:** End-to-end type safety, Database migrations, Structured logging, JWT authentication
 
 ### [@elsie/models](./packages/models)
 Shared types, schemas, and configurations.
@@ -100,11 +100,20 @@ pnpm format
 - **React 19** - UI library
 - **Vite 7** - Build tool
 - **TypeScript** - Type safety
+- **TanStack Router** - Type-safe file-based routing
+- **TanStack Query** - Data fetching and caching
+- **tRPC** - End-to-end type-safe APIs
+- **Tailwind CSS v4** - Utility-first CSS
+- **Radix UI** - Accessible component primitives
+- **shadcn/ui** - Beautiful component library
+- **Lucide React** - Icon library
 
 ### Backend
 - **Express 5** - Web framework
 - **PostgreSQL** - Database
-- **Drizzle ORM** - Type-safe database queries
+- **Drizzle ORM** - Type-safe database queries with migrations
+- **tRPC** - End-to-end type-safe APIs
+- **Pino** - High-performance logging
 - **JWT** - Authentication
 
 ### Shared

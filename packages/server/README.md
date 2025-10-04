@@ -1,27 +1,43 @@
 # @elsie/server
 
-Express.js backend API server for the Elsie platform.
+Express.js backend API server with tRPC for the Elsie platform.
 
 ## 🚀 Features
 
 - **Express 5** - Modern Node.js web framework
+- **tRPC** - End-to-end type-safe APIs
 - **TypeScript** - Type-safe development
 - **PostgreSQL** - Database with Drizzle ORM
+- **Drizzle Kit** - Database migrations and seeding
+- **Pino** - High-performance structured logging
 - **JWT Authentication** - Secure token-based auth
+- **Zod** - Runtime validation for env and data
 - **CORS** - Cross-origin resource sharing
-- **Environment Validation** - Runtime config validation with Zod
 - **Hot Reload** - Fast development with tsx watch mode
 
 ## 🏗️ Project Structure
 
 ```
 src/
-├── constants/        # Configuration and constants
-│   └── config.ts     # Environment variables with validation
-├── libs/            # Shared libraries
-│   └── db.ts        # Database connection (Drizzle + PostgreSQL)
-├── index.ts         # Application entry point
-└── type.d.ts        # Global type definitions
+├── constants/              # Configuration
+│   ├── config.ts           # Environment variables with Zod validation
+│   ├── drizzle-migrate.config.ts  # Migration configuration
+│   └── drizzle-seed.config.ts     # Seed configuration
+├── db/                     # Database layer
+│   ├── columns.helper.ts   # Reusable column definitions
+│   └── schema/             # Drizzle ORM schemas
+│       └── users.schema.ts
+├── libs/                   # Shared libraries
+│   ├── db.ts               # Database connection (Drizzle + PostgreSQL)
+│   └── pino.ts             # Logging configuration
+├── trpc/                   # tRPC setup
+│   ├── context.ts          # Request context
+│   ├── trpc.ts             # tRPC instance and procedures
+│   └── routers/            # tRPC routers
+│       ├── index.ts        # Root router
+│       └── health.ts       # Health check endpoint
+├── index.ts                # Application entry point
+└── type.d.ts               # Global type definitions
 ```
 
 ## 🔧 Getting Started
@@ -62,6 +78,12 @@ JWT_REFRESH_TOKEN_EXPIRED=7d
 # Start development server with hot reload (from package root)
 pnpm dev
 
+# Generate database migrations
+pnpm generate:migration
+
+# Generate database seed files
+pnpm generate:seed
+
 # Or run from monorepo root (runs all packages)
 cd ../.. && pnpm dev
 # 🟡 [models] - TypeScript watch mode (auto-rebuilds)
@@ -92,49 +114,113 @@ No need to manually restart or rebuild during development!
 
 ### Dependencies
 
-- **express** - Web framework
+- **express** `^5.1.0` - Web framework
+- **@trpc/server** `^11.6.0` - tRPC server
 - **cors** - CORS middleware
-- **drizzle-orm** - TypeScript ORM
+- **drizzle-orm** `^0.44.6` - TypeScript ORM
 - **pg** - PostgreSQL client
+- **pino** `^10.0.0` - Structured logging
+- **pino-pretty** - Pretty logging in development
 - **jsonwebtoken** - JWT implementation
 - **dotenv** - Environment variable loader
 - **@elsie/models** - Shared types and schemas
 
 ### Dev Dependencies
 
-- **tsx** - TypeScript execution and watch mode
-- **drizzle-kit** - Database migrations
+- **tsx** `^4.20.6` - TypeScript execution and watch mode
+- **drizzle-kit** `^0.31.5` - Database migrations and introspection
 - **tsc-alias** - Path alias resolution
 - **rimraf** - Cross-platform file deletion
 - **@types/\*** - TypeScript type definitions
 
-## 🗄️ Database
+## 🗄️ Database with Drizzle ORM
 
-This server uses Drizzle ORM with PostgreSQL. The database connection is configured in `src/libs/db.ts`.
+This server uses **Drizzle ORM** with PostgreSQL for type-safe database queries.
+
+### Database Connection
 
 ```typescript
 import { db } from './libs/db'
 
-// Use db instance for queries
-const result = await db.query.users.findMany()
+// Type-safe queries
+const users = await db.query.users.findMany()
 ```
 
-## 🔗 Integration with Models
+### Migrations
 
-The server imports types and schemas from `@elsie/models`:
+```bash
+# Generate migration from schema changes
+pnpm generate:migration
+
+# Apply migrations
+drizzle-kit push
+```
+
+### Schema Definition
 
 ```typescript
-import { serverConfigSchema, type Course } from '@elsie/models'
+// src/db/schema/users.schema.ts
+import { pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
-// Environment validation
-const config = serverConfigSchema.parse(process.env)
+export const users = pgTable('users', {
+  id: text('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow()
+})
 ```
 
-During development, changes to `@elsie/models` trigger:
+## 🔗 tRPC Integration
 
-1. TypeScript watch rebuilds the models package
-2. Server detects changes and automatically restarts
-3. New types are immediately available
+The server uses **tRPC** for end-to-end type-safe APIs.
+
+### Creating Procedures
+
+```typescript
+// src/trpc/routers/health.ts
+import { publicProcedure, router } from '../trpc'
+
+export const healthRouter = router({
+  check: publicProcedure.query(() => {
+    return { status: 'ok' }
+  })
+})
+```
+
+### Root Router
+
+```typescript
+// src/trpc/routers/index.ts
+import { router } from '../trpc'
+import { healthRouter } from './health'
+
+export const appRouter = router({
+  health: healthRouter
+})
+
+export type AppRouter = typeof appRouter
+```
+
+### Client Usage
+
+The client can now call this with full type safety:
+
+```typescript
+// Client side
+const result = await trpc.health.check.query()
+// result is typed as { status: string }
+```
+
+## 📝 Logging with Pino
+
+Structured logging with **Pino** for high performance:
+
+```typescript
+import { logger } from './libs/pino'
+
+logger.info('Server started')
+logger.error({ err }, 'Database connection failed')
+logger.debug({ userId: '123' }, 'User logged in')
+```
 
 ## 🔐 Authentication
 
@@ -145,11 +231,15 @@ JWT-based authentication with access and refresh tokens:
 
 Configuration is validated via `@elsie/models/serverConfigSchema`.
 
-## 🌐 API Endpoints
+## 🌐 tRPC Endpoints
 
-The server runs on `http://localhost:3000` by default.
+The tRPC API is available at `http://localhost:3000/trpc`.
 
-CORS is configured to accept requests from `http://localhost:5173` (client app).
+### Available Procedures
+
+- `health.check` - Health check endpoint
+
+CORS is configured to accept requests from the configured origin (default: client app).
 
 ## 🏃 Running in Production
 
