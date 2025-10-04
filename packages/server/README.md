@@ -59,8 +59,14 @@ JWT_REFRESH_TOKEN_EXPIRED=7d
 ### Development
 
 ```bash
-# Start development server with hot reload
+# Start development server with hot reload (from package root)
 pnpm dev
+
+# Or run from monorepo root (runs all packages)
+cd ../.. && pnpm dev
+# 🟡 [models] - TypeScript watch mode (auto-rebuilds)
+# 🔵 [server] - Express API with hot reload
+# 🟢 [client] - Vite dev server with HMR
 
 # Build for production
 pnpm build
@@ -71,6 +77,16 @@ pnpm lint
 # Format code
 pnpm format
 ```
+
+## 🔄 Hot Reload
+
+The server uses `tsx --watch` which automatically:
+
+- ✅ Restarts the server when source files change
+- ✅ Preserves output for easier debugging
+- ✅ Picks up changes from `@elsie/models` automatically
+
+No need to manually restart or rebuild during development!
 
 ## 📦 Tech Stack
 
@@ -102,6 +118,23 @@ import { db } from './libs/db'
 // Use db instance for queries
 const result = await db.query.users.findMany()
 ```
+
+## 🔗 Integration with Models
+
+The server imports types and schemas from `@elsie/models`:
+
+```typescript
+import { serverConfigSchema, type Course } from '@elsie/models'
+
+// Environment validation
+const config = serverConfigSchema.parse(process.env)
+```
+
+During development, changes to `@elsie/models` trigger:
+
+1. TypeScript watch rebuilds the models package
+2. Server detects changes and automatically restarts
+3. New types are immediately available
 
 ## 🔐 Authentication
 

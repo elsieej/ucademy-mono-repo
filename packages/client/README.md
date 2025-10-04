@@ -32,8 +32,14 @@ src/
 ### Development
 
 ```bash
-# Start development server
+# Start development server (from package root)
 pnpm dev
+
+# Or run from monorepo root (runs all packages)
+cd ../.. && pnpm dev
+# 🟡 [models] - TypeScript watch mode (auto-rebuilds)
+# 🔵 [server] - Express API with hot reload
+# 🟢 [client] - Vite dev server with HMR
 
 # Build for production
 pnpm build
@@ -55,6 +61,17 @@ The development server runs on **http://localhost:3001** with:
 - ⚡ Hot Module Replacement (HMR)
 - 🔥 Fast Refresh for React components
 - 🎯 Type-checking in the IDE
+- 🔄 Auto-updates when `@elsie/models` types change
+
+### Full Stack Development
+
+When running `pnpm dev` from the monorepo root:
+
+- **Client** (3001) - React app with instant HMR
+- **Server** (3000) - API with hot reload
+- **Models** - TypeScript watch mode for shared types
+
+Changes flow automatically: Models → Server → Client
 
 ## 📦 Tech Stack
 
@@ -77,6 +94,8 @@ The client connects to the backend API at **http://localhost:3000**.
 
 ### Using Shared Types
 
+Import types and schemas from `@elsie/models` for type safety:
+
 ```typescript
 import { type Course } from '@elsie/models'
 
@@ -89,6 +108,15 @@ function CourseCard({ course }: { course: Course }) {
   )
 }
 ```
+
+### Type Safety Across the Stack
+
+During development:
+
+1. Update types in `@elsie/models`
+2. TypeScript watch automatically rebuilds
+3. Both client and server get updated types
+4. TypeScript errors show immediately in your IDE
 
 ## 🏗️ Building for Production
 

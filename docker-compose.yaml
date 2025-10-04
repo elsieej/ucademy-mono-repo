@@ -1,0 +1,34 @@
+x-restart-policy: &restart_policy
+  restart: unless-stopped
+
+x-logging: &logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "2"
+
+x-healthcheck: &healthcheck
+  healthcheck:
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 30s
+services:
+  postgres:
+    <<: [*restart_policy, *logging, *healthcheck]
+    image: postgres:15
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    healthcheck:
+      <<: [*healthcheck]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+
+volumes:
+  postgres_data:

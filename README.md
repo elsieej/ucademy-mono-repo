@@ -46,7 +46,8 @@ Shared types, schemas, and configurations.
 
 - **Node.js:** 22.20.0 (managed via Volta)
 - **pnpm:** Latest version
-- **PostgreSQL:** Running instance
+- **PostgreSQL:** Running instance (or use Docker)
+- **Docker & Docker Compose:** (Optional) For containerized development
 
 ### Installation
 
@@ -61,6 +62,12 @@ pnpm install
 # Setup environment variables
 cp packages/server/.env.example packages/server/.env
 # Edit packages/server/.env with your configuration
+
+# Option 1: Start PostgreSQL with Docker (recommended)
+docker-compose up postgres -d
+
+# Option 2: Use your local PostgreSQL installation
+# Make sure PostgreSQL is running and update .env accordingly
 ```
 
 ### Development
@@ -112,6 +119,11 @@ pnpm format
 - **lint-staged** - Pre-commit linting
 - **concurrently** - Run multiple processes
 - **tsx** - TypeScript execution
+
+### Infrastructure
+- **Docker** - Containerization
+- **Docker Compose** - Multi-container orchestration
+- **PostgreSQL** - Containerized database
 
 ## 📝 Scripts
 
@@ -199,6 +211,60 @@ Each package may require specific environment variables. See package READMEs for
 - [Client environment setup](./packages/client/README.md)
 - [Server environment setup](./packages/server/README.md)
 
+## 🐳 Docker
+
+The project includes Docker support for containerized development and deployment.
+
+### Using Docker Compose
+
+```bash
+# Start all services (database, server, client)
+docker-compose up
+
+# Start in detached mode
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+
+# Rebuild containers
+docker-compose up --build
+```
+
+### Docker Services
+
+- **PostgreSQL** - Database container on port `5432`
+- **Server** - Backend API container on port `3000`
+- **Client** - Frontend container on port `3001`
+
+### Development with Docker
+
+```bash
+# Start only the database
+docker-compose up postgres -d
+
+# Run server and client locally (with hot reload)
+pnpm dev
+```
+
+This hybrid approach gives you:
+- ✅ Consistent database environment
+- ✅ Fast hot reload for code changes
+- ✅ No need to install PostgreSQL locally
+
+### Production Build
+
+```bash
+# Build production images
+docker-compose -f docker-compose.prod.yml build
+
+# Run production containers
+docker-compose -f docker-compose.prod.yml up -d
+```
+
 ## 🧪 Testing (Future)
 
 Recommended setup:
@@ -231,6 +297,8 @@ This project is private and proprietary.
 
 - [pnpm Workspaces](https://pnpm.io/workspaces)
 - [TypeScript Project References](https://www.typescriptlang.org/docs/handbook/project-references.html)
+- [Docker Documentation](https://docs.docker.com)
+- [Docker Compose Documentation](https://docs.docker.com/compose/)
 - [Vite Documentation](https://vite.dev)
 - [Express Documentation](https://expressjs.com)
 - [React Documentation](https://react.dev)
