@@ -1,9 +1,9 @@
 import z from 'zod'
 
 const clientConfig = z.object({
-  apiUrl: z.string(),
+  apiUrl: z.string().optional(),
 
-  nodeEnv: z.enum(['development', 'production']).default('development')
+  MODE: z.enum(['development', 'production']).default('development')
 })
 
 export type ClientConfig = z.infer<typeof clientConfig>

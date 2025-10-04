@@ -20,18 +20,30 @@ Modern React frontend application for the Elsie platform with end-to-end type sa
 
 ```
 src/
-├── assets/          # Static assets (images, icons)
-├── components/      # Reusable components
-│   └── ui/          # shadcn/ui components
-├── constants/       # App configuration
-├── lib/             # Utility functions
-├── routes/          # File-based routes (TanStack Router)
-│   ├── __root.tsx   # Root layout
-│   ├── index.tsx    # Home page
-│   └── about.tsx    # About page
-├── routeTree.gen.ts # Auto-generated route tree
-├── main.tsx         # Application entry point
-└── index.css        # Global styles (Tailwind CSS)
+├── assets/             # Static assets (images, icons)
+├── components/         # Reusable components
+│   └── ui/             # shadcn/ui components
+├── constants/          # App configuration
+├── features/           # Feature-based modules
+│   ├── auth/           # Authentication features
+│   │   ├── login/      # Login feature
+│   │   └── register/   # Register feature
+│   └── shared/         # Shared feature components
+├── lib/                # Utility functions
+├── providers/          # React context providers
+│   └── auth.provider.tsx  # Authentication context
+├── routes/             # File-based routes (TanStack Router)
+│   ├── __root.tsx      # Root layout with context
+│   ├── auth/           # Auth routes
+│   │   ├── route.tsx   # Auth layout
+│   │   ├── login.tsx   # Login page
+│   │   └── register.tsx # Register page
+│   ├── index.tsx       # Home page
+│   └── about.tsx       # About page
+├── routeTree.gen.ts    # Auto-generated route tree
+├── App.tsx             # App component with router
+├── main.tsx            # Application entry point
+└── index.css           # Global styles (Tailwind CSS)
 ```
 
 ## 🔧 Getting Started
@@ -204,30 +216,108 @@ function MyComponent() {
 
 ## 🛣️ Routing with TanStack Router
 
-File-based routing with full type safety:
+File-based routing with full type safety and context.
+
+### Root Route with Context
 
 ```tsx
-// src/routes/index.tsx
-import { createFileRoute } from '@tanstack/react-router'
+// src/routes/__root.tsx
+import { createRootRouteWithContext } from '@tanstack/react-router'
 
-export const Route = createFileRoute('/')({
-  component: HomePage
+type RouterContext = {
+  auth: AuthState
+}
+
+export const Route = createRootRouteWithContext<RouterContext>()({
+  component: RootComponent,
+  notFoundComponent: NotFoundComponent,
+  errorComponent: ErrorComponent
+})
+```
+
+### Router Setup
+
+```tsx
+// src/App.tsx
+const router = createRouter({
+  routeTree,
+  context: undefined!
 })
 
-function HomePage() {
-  return <h1>Home Page</h1>
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router
+  }
 }
+
+const App = () => {
+  const auth = useAuth()
+  return <RouterProvider router={router} context={{ auth }} />
+}
+```
+
+### Protected Routes
+
+```tsx
+// src/routes/auth/login.tsx
+export const Route = createFileRoute('/auth/login')({
+  validateSearch: (search) => ({
+    redirect: (search.redirect as string) || '/'
+  }),
+  beforeLoad: ({ context, search }) => {
+    // Redirect if already authenticated
+    if (context.auth?.isAuthenticated) {
+      throw redirect({ to: search.redirect })
+    }
+  },
+  component: LoginPage
+})
 ```
 
 ### Route Tree Generation
 
 Routes are automatically generated from the file structure:
 
-- `src/routes/__root.tsx` → Root layout
+- `src/routes/__root.tsx` → Root layout with context
 - `src/routes/index.tsx` → `/`
-- `src/routes/about.tsx` → `/about`
+- `src/routes/auth/route.tsx` → `/auth` (layout)
+- `src/routes/auth/login.tsx` → `/auth/login`
+- `src/routes/auth/register.tsx` → `/auth/register`
 
 Run `pnpm tsr:watch` during development for auto-generation.
+
+### Naming Conventions
+
+- **Routes**: `kebab-case` (e.g., `auth/login.tsx`)
+- **Components**: `kebab-case.component.tsx` (e.g., `login-form.component.tsx`)
+- **Providers**: `kebab-case.provider.tsx` (e.g., `auth.provider.tsx`)
+
+## 📦 Updating Dependencies
+
+### Interactive Update (Recommended)
+
+```bash
+# From client package
+pnpm update --interactive --latest
+
+# From monorepo root
+pnpm -F @elsie/client update --interactive --latest
+```
+
+### Update Specific Packages
+
+```bash
+# Update TanStack packages
+pnpm update "@tanstack/*" --latest
+
+# Update React
+pnpm update react react-dom --latest
+
+# Update Tailwind CSS
+pnpm update tailwindcss @tailwindcss/vite --latest
+```
+
+See [root README](../../README.md#-updating-dependencies) for more details.
 
 ## 🧪 Testing (Future)
 

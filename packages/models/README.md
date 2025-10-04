@@ -111,6 +111,26 @@ This automatically rebuilds the package whenever you make changes to source file
 
 - **zod** - Schema validation and type inference
 
+## 📦 Updating Dependencies
+
+### Interactive Update (Recommended)
+
+```bash
+# From models package
+pnpm update --interactive --latest
+
+# From monorepo root
+pnpm -F @elsie/models update --interactive --latest
+```
+
+### Update Zod
+
+```bash
+pnpm update zod --latest
+```
+
+See [root README](../../README.md#-updating-dependencies) for more details.
+
 ## 🔗 Used By
 
 - `@elsie/server` - Backend API

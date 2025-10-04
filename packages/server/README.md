@@ -253,6 +253,33 @@ node dist/index.js
 
 Make sure all environment variables are properly set in production.
 
+## 📦 Updating Dependencies
+
+### Interactive Update (Recommended)
+
+```bash
+# From server package
+pnpm update --interactive --latest
+
+# From monorepo root
+pnpm -F @elsie/server update --interactive --latest
+```
+
+### Update Specific Packages
+
+```bash
+# Update tRPC
+pnpm update @trpc/server --latest
+
+# Update Drizzle
+pnpm update drizzle-orm drizzle-kit --latest
+
+# Update Express
+pnpm update express --latest
+```
+
+See [root README](../../README.md#-updating-dependencies) for more details.
+
 ## 🔗 Related Packages
 
 - **@elsie/models** - Shared types and validation schemas

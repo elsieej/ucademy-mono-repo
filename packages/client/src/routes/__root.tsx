@@ -1,22 +1,27 @@
-import { createRootRoute, Link, Outlet } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+import { config } from '@/constants/config'
+import ErrorComponent from '@/features/shared/components/error.component'
+import NotFoundComponent from '@/features/shared/components/not-found.component'
+import type { AuthState } from '@/providers/auth.provider'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { createRootRouteWithContext, Link, Outlet } from '@tanstack/react-router'
+import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 
-export const Route = createRootRoute({
+type RouterContext = {
+  auth: AuthState
+}
+
+export const Route = createRootRouteWithContext<RouterContext>()({
   component: () => (
     <>
-      <div className='p-2 flex gap-2'>
-        <Link to='/' className='[&.active]:font-bold'>
-          Home
-        </Link>{' '}
-        <Link to='/about' className='[&.active]:font-bold'>
-          About
-        </Link>
-      </div>
-      <hr />
       <Outlet />
-      <TanStackRouterDevtools />
-      <ReactQueryDevtools />
+      {config.MODE === 'development' ? (
+        <>
+          <TanStackRouterDevtools />
+          <ReactQueryDevtools />
+        </>
+      ) : null}
     </>
-  )
+  ),
+  notFoundComponent: NotFoundComponent,
+  errorComponent: ErrorComponent
 })

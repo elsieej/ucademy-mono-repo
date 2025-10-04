@@ -289,6 +289,86 @@ For detailed information about each package, see their individual READMEs:
 - [Server Documentation](./packages/server/README.md)
 - [Models Documentation](./packages/models/README.md)
 
+## 📦 Updating Dependencies
+
+### Check for Updates
+
+```bash
+# Check outdated packages across all workspaces
+pnpm -r outdated
+
+# Check only root dependencies
+pnpm outdated
+
+# Check specific package
+pnpm -F @elsie/client outdated
+```
+
+### Update Packages (Recommended: Interactive Mode)
+
+```bash
+# Interactive update - choose which packages to update
+pnpm -r update --interactive --latest
+
+# Update specific package in all workspaces
+pnpm -r update react --latest
+
+# Update in specific workspace
+pnpm -F @elsie/client update @tanstack/react-router --latest
+```
+
+### Update Workflow
+
+```bash
+# 1. Check what's outdated
+pnpm -r outdated
+
+# 2. Update interactively (safest - choose what to update)
+pnpm -r update --interactive --latest
+
+# 3. Test everything
+pnpm -r build
+pnpm -r lint
+pnpm dev
+
+# 4. Commit changes including lockfile
+git add pnpm-lock.yaml package.json packages/*/package.json
+git commit -m "chore: update dependencies"
+```
+
+### Update Categories
+
+**All Packages**
+```bash
+# Update everything (review carefully)
+pnpm -r update --latest
+```
+
+**Dev Dependencies Only**
+```bash
+pnpm -r update --dev --latest
+```
+
+**Specific Package Types**
+```bash
+# Update all @tanstack packages
+pnpm -r update "@tanstack/*" --latest
+
+# Update all @types packages
+pnpm -r update "@types/*" --latest
+
+# Update TypeScript
+pnpm -r update typescript --latest
+```
+
+### Best Practices
+
+1. ✅ **Use interactive mode** - Review each update before applying
+2. ✅ **Update frequently** - Small updates are safer than big jumps
+3. ✅ **Test after updates** - Run build, lint, and dev mode
+4. ✅ **Commit lockfile** - Always include `pnpm-lock.yaml`
+5. ✅ **Check changelogs** - Review breaking changes before updating
+
 ## 🤝 Contributing
 
 1. Create a feature branch
