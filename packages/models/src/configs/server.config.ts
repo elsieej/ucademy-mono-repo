@@ -1,13 +1,13 @@
 import z from 'zod'
 
 const serverConfig = z.object({
-  port: z.number(),
+  port: z.coerce.number(),
   corsOrigin: z.string(),
 
   dbUser: z.string(),
   dbPassword: z.string(),
   dbHost: z.string(),
-  dbPort: z.number(),
+  dbPort: z.coerce.number(),
   dbName: z.string(),
 
   jwtAccessTokenExpired: z.string(),

@@ -7,7 +7,7 @@
     "node": "22.20.0"
   },
   "scripts": {
-    "dev": "concurrently -n server,client -c blue,green \"pnpm -F @elsie/server dev\" \"pnpm -F @elsie/client dev\"",
+    "dev": "concurrently -n models,server,client -c yellow,blue,green \"pnpm -F @elsie/models dev\" \"pnpm -F @elsie/server dev\" \"pnpm -F @elsie/client dev\"",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "format": "pnpm -r format",

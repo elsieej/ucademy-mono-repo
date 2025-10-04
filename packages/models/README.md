@@ -84,7 +84,10 @@ Validates server environment variables:
 ## 🛠️ Scripts
 
 ```bash
-# Build the package
+# Development with watch mode (auto-rebuilds on changes)
+pnpm dev
+
+# Build the package once
 pnpm build
 
 # Lint code
@@ -93,6 +96,16 @@ pnpm lint
 # Format code
 pnpm format
 ```
+
+## 🔄 Watch Mode
+
+The models package includes TypeScript watch mode for development:
+
+```bash
+pnpm dev
+```
+
+This automatically rebuilds the package whenever you make changes to source files. When running `pnpm dev` at the root level, models watch mode runs alongside the server and client, ensuring type changes are immediately available.
 
 ## 📦 Dependencies
 
