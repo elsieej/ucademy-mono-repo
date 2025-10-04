@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+      "target": "ES2022",
+      "module": "ESNext",
+      "strict": true,
+      "esModuleInterop": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+      "moduleResolution": "Node",
+      "resolveJsonModule": true,
+      "declaration": true,
+      "incremental": true,
+      "composite": true,
+      "baseUrl": ".",
+      "paths": {
+        "@elsie/*": ["packages/*/src"]
+      }
+    }
+  }

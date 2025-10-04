@@ -1,0 +1,19 @@
+# Ignore build outputs
+dist
+build
+
+# Ignore dependencies
+node_modules
+
+# Ignore logs
+*.log
+
+# Ignore coverage files
+coverage
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore generated files
+*.tsbuildinfo
