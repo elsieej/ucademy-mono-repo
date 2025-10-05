@@ -1,2 +1,3 @@
-export * from './courses'
 export * from './configs'
+export * from './schema'
+export * from './apis'

@@ -8,7 +8,10 @@ const serverConfig = serverConfigSchema.safeParse(process.env)
 
 if (!serverConfig.success) {
   const error = z.treeifyError(serverConfig.error)
-  logger.error(`${JSON.stringify(error.properties, null, 2)}`)
+  logger.error(
+    error.properties,
+    `[SERVER][CONFIG] invalid environment variables: ${JSON.stringify(error.properties, null, 2)}`
+  )
   throw new Error(`Invalid environment variables`)
 }
 

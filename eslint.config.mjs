@@ -8,7 +8,7 @@ import globals from 'globals'
 
 const sharedRules = {
   ...prettierConfig.rules,
-  '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+  '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
   '@typescript-eslint/restrict-template-expressions': ['warn', { allowNumber: true, allowBoolean: true }],
   'prettier/prettier': [
     'warn',

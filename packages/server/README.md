@@ -78,11 +78,11 @@ JWT_REFRESH_TOKEN_EXPIRED=7d
 # Start development server with hot reload (from package root)
 pnpm dev
 
-# Generate database migrations
-pnpm generate:migration
-
-# Generate database seed files
-pnpm generate:seed
+# Database operations
+pnpm db:migrate:generate  # Generate migration files
+pnpm db:migrate:up        # Apply migrations
+pnpm db:seed:generate     # Generate seed files
+pnpm db:seed:up          # Apply seeds
 
 # Or run from monorepo root (runs all packages)
 cd ../.. && pnpm dev
@@ -129,8 +129,7 @@ No need to manually restart or rebuild during development!
 
 - **tsx** `^4.20.6` - TypeScript execution and watch mode
 - **drizzle-kit** `^0.31.5` - Database migrations and introspection
-- **tsc-alias** - Path alias resolution
-- **rimraf** - Cross-platform file deletion
+- **tsc-alias** `^1.8.16` - Path alias resolution for compiled output
 - **@types/\*** - TypeScript type definitions
 
 ## 🗄️ Database with Drizzle ORM
@@ -264,22 +263,37 @@ The server uses `tsconfig.build.json` for production builds:
     "noEmit": false, // Enable JavaScript output
     "outDir": "dist", // Output directory
     "rootDir": "src", // Source directory
-    "declaration": true, // Generate .d.ts files (for client import)
-    "composite": true // Enable project references
-  },
-  "references": [
-    { "path": "../models/tsconfig.build.json" } // Depend on models
-  ]
+    "declaration": false, // Skip .d.ts generation (faster builds)
+    "sourceMap": true, // Generate source maps for debugging
+    "skipLibCheck": true // Skip type checking of declaration files
+  }
 }
+```
+
+**Build Process:**
+
+```bash
+# 1. Compile TypeScript to JavaScript
+tsc -p tsconfig.build.json
+
+# 2. Resolve path aliases (@/* → actual paths)
+tsc-alias -p tsconfig.build.json
 ```
 
 **Build Output:**
 
 - JavaScript files: `dist/**/*.js`
-- Type declarations: `dist/**/*.d.ts` (used by `@elsie/client` for type safety)
-- Source maps: `dist/**/*.js.map` and `dist/**/*.d.ts.map`
+- Source maps: `dist/**/*.js.map`
 
-**Important:** The `dist` folder must exist with type declarations for the client to import `@elsie/server` types (e.g., `AppRouter`).
+**Note:** The build doesn't automatically clean the `dist` folder. To manually clean:
+
+```bash
+# Windows
+rmdir /s /q dist
+
+# Linux/Mac
+rm -rf dist
+```
 
 ## 📦 Updating Dependencies
 

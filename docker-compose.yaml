@@ -8,15 +8,9 @@ x-logging: &logging
       max-size: "10m"
       max-file: "2"
 
-x-healthcheck: &healthcheck
-  healthcheck:
-    interval: 10s
-    timeout: 5s
-    retries: 5
-    start_period: 30s
 services:
   postgres:
-    <<: [*restart_policy, *logging, *healthcheck]
+    <<: [*restart_policy, *logging]
     image: postgres:15
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
@@ -27,7 +21,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     healthcheck:
-      <<: [*healthcheck]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
 
 volumes:

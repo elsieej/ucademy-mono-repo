@@ -8,11 +8,10 @@ const t = initTRPC.context<Context>().create({
     const { shape, error } = opts
     return {
       ...shape,
+      message: error.message,
       data: {
         ...shape.data,
-        zodError:
-          // Only show zod errors for bad request errors
-          error.code === 'BAD_REQUEST' && error.cause instanceof ZodError ? z.treeifyError(error.cause) : null
+        zodError: error.cause instanceof ZodError ? z.treeifyError(error.cause) : null
       }
     }
   }

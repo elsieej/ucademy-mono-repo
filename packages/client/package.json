@@ -15,6 +15,7 @@
   "dependencies": {
     "@elsie/models": "workspace:*",
     "@elsie/server": "workspace:*",
+    "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@tailwindcss/vite": "^4.1.14",
@@ -29,8 +30,10 @@
     "lucide-react": "^0.544.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-hook-form": "^7.64.0",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss": "^4.1.14"
+    "tailwindcss": "^4.1.14",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@tanstack/router-cli": "^1.132.33",

@@ -27,5 +27,5 @@ app.use(
 )
 
 httpServer.listen(port, () => {
-  logger.info(`Server is running on port ${port}`)
+  logger.info({ port }, `[SERVER] is running on port ${port}`)
 })

@@ -200,15 +200,21 @@ import type { AppRouter } from '@elsie/server'
 **Requirements:**
 
 1. `@elsie/server` must be listed in `package.json` dependencies
-2. The server package must have `main` and `types` fields in its `package.json`:
+2. The server source files must be accessible via TypeScript path mappings
+3. `tsconfig.app.json` must extend the base config to resolve `@elsie/*` path mappings:
    ```json
    {
-     "main": "dist/index.js",
-     "types": "dist/index.d.ts"
+     "paths": {
+       "@elsie/*": ["packages/*/src"]
+     }
    }
    ```
-3. The server must be built (`pnpm -F @elsie/server build`) to generate type declarations
-4. `tsconfig.app.json` must extend the base config to resolve `@elsie/*` path mappings
+
+**How it works:**
+
+- The client imports types directly from the server's **source files** (not built `.d.ts` files)
+- TypeScript uses path mappings to resolve `@elsie/server` → `packages/server/src`
+- No need to build the server for type checking (faster development!)
 
 **Note:** Use `import type` (not `import`) to ensure only types are imported at compile-time, preventing server code from bundling into the client.
 
