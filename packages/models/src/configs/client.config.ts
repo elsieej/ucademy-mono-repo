@@ -1,7 +1,7 @@
 import z from 'zod'
 
 const clientConfig = z.object({
-  apiUrl: z.string().optional(),
+  VITE_API_URL: z.string(),
 
   MODE: z.enum(['development', 'production']).default('development')
 })

@@ -161,9 +161,50 @@ pnpm -r <command>
 
 ### TypeScript
 
-- **tsconfig.base.json** - Base configuration with path mappings
-- Each package extends the base config with specific settings
+- **tsconfig.base.json** - Base configuration with path mappings for all packages
+- Each package extends the base config with package-specific settings
 - Path aliases: `@elsie/*` → `packages/*/src`
+
+#### Build Configuration
+
+Each package uses a dual tsconfig setup:
+
+1. **tsconfig.json** - Development type-checking (extends `tsconfig.base.json`)
+2. **tsconfig.build.json** - Production builds with output
+
+**Key Build Settings:**
+
+```json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,         // Enable JavaScript output (critical!)
+    "outDir": "dist",        // Output directory
+    "declaration": true,     // Generate .d.ts type declarations
+    "composite": true        // Enable project references
+  },
+  "references": []           // Dependencies on other packages
+}
+```
+
+**Important:** `noEmit: false` is required in `tsconfig.build.json` to generate JavaScript files. The base config should not set `noEmit`, `composite`, or `declaration` to avoid conflicts.
+
+#### Package References
+
+Packages can reference each other for type-safe imports:
+
+```
+@elsie/server
+  └─ references → @elsie/models
+
+@elsie/client
+  └─ imports types from → @elsie/server (via dist/index.d.ts)
+```
+
+This ensures:
+- ✅ Type safety across package boundaries
+- ✅ Incremental builds
+- ✅ Proper build order (models → server → client)
 
 ### ESLint
 
@@ -182,11 +223,53 @@ pnpm -r <command>
 1. **Start dev mode** - `pnpm dev` runs all packages in watch mode
 2. **Make changes** in any package
 3. **Auto-reload:**
-   - Models: TypeScript rebuilds automatically
-   - Server: tsx restarts on file changes
-   - Client: Vite HMR updates instantly
+   - Models: TypeScript rebuilds automatically (watch mode)
+   - Server: tsx restarts on file changes (hot reload)
+   - Client: Vite HMR updates instantly (no page refresh)
 4. **Pre-commit hook** ensures code quality before commit
 5. **Build** for production with `pnpm build`
+
+### Type Safety Flow
+
+```
+┌─────────────────────────────────────────────────────┐
+│ 1. Define schema in @elsie/models (Zod + TS types) │
+└──────────────────┬──────────────────────────────────┘
+                   │
+       ┌───────────┴───────────┐
+       ▼                       ▼
+┌──────────────┐        ┌──────────────┐
+│ 2. Server    │        │ 2. Client    │
+│ imports      │        │ imports      │
+│ schemas      │        │ types        │
+└──────┬───────┘        └──────┬───────┘
+       │                       │
+       ▼                       │
+┌──────────────┐               │
+│ 3. Server    │               │
+│ exports      │───────────────┤
+│ AppRouter    │               │
+└──────────────┘               ▼
+                        ┌──────────────┐
+                        │ 4. Client    │
+                        │ imports      │
+                        │ AppRouter    │
+                        │ (type only)  │
+                        └──────────────┘
+                                │
+                                ▼
+                        ┌──────────────┐
+                        │ 5. Full type │
+                        │ safety on    │
+                        │ tRPC calls   │
+                        └──────────────┘
+```
+
+**Key Points:**
+- Models must be built first (TypeScript watch mode handles this)
+- Server must be built to generate `dist/index.d.ts` for client to import types
+- Client uses `import type` to avoid bundling server code
+- Changes to models automatically trigger server type updates
 
 ### Adding Dependencies
 

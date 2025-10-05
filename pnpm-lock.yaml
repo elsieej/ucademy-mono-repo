@@ -66,6 +66,9 @@ importers:
       '@elsie/models':
         specifier: workspace:*
         version: link:../models
+      '@elsie/server':
+        specifier: workspace:*
+        version: link:../server
       '@radix-ui/react-label':
         specifier: ^2.1.7
         version: 2.1.7(@types/react-dom@19.2.0(@types/react@19.2.0))(@types/react@19.2.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -90,6 +93,9 @@ importers:
       '@trpc/client':
         specifier: ^11.6.0
         version: 11.6.0(@trpc/server@11.6.0(typescript@5.9.3))(typescript@5.9.3)
+      '@trpc/tanstack-react-query':
+        specifier: ^11.6.0
+        version: 11.6.0(@tanstack/react-query@5.90.2(react@19.2.0))(@trpc/client@11.6.0(@trpc/server@11.6.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.6.0(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -1102,6 +1108,16 @@ packages:
   '@trpc/server@11.6.0':
     resolution: {integrity: sha512-skTso0AWbOZck40jwNeYv++AMZXNWLUWdyk+pB5iVaYmEKTuEeMoPrEudR12VafbEU6tZa8HK3QhBfTYYHDCdg==}
     peerDependencies:
+      typescript: '>=5.7.2'
+
+  '@trpc/tanstack-react-query@11.6.0':
+    resolution: {integrity: sha512-254OpGV2RT9Djl6HRJmokDMT4pZz3beLs+8/T35ySfBxiC5OdEsOeESIJpC302YaZcCGwkOZ+d+FKFXgpy0YtQ==}
+    peerDependencies:
+      '@tanstack/react-query': ^5.80.3
+      '@trpc/client': 11.6.0
+      '@trpc/server': 11.6.0
+      react: '>=18.2.0'
+      react-dom: '>=18.2.0'
       typescript: '>=5.7.2'
 
   '@types/babel__core@7.20.5':
@@ -3680,6 +3696,15 @@ snapshots:
 
   '@trpc/server@11.6.0(typescript@5.9.3)':
     dependencies:
+      typescript: 5.9.3
+
+  '@trpc/tanstack-react-query@11.6.0(@tanstack/react-query@5.90.2(react@19.2.0))(@trpc/client@11.6.0(@trpc/server@11.6.0(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.6.0(typescript@5.9.3))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)':
+    dependencies:
+      '@tanstack/react-query': 5.90.2(react@19.2.0)
+      '@trpc/client': 11.6.0(@trpc/server@11.6.0(typescript@5.9.3))(typescript@5.9.3)
+      '@trpc/server': 11.6.0(typescript@5.9.3)
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
       typescript: 5.9.3
 
   '@types/babel__core@7.20.5':

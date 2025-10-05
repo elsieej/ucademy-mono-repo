@@ -253,6 +253,34 @@ node dist/index.js
 
 Make sure all environment variables are properly set in production.
 
+### Build Configuration
+
+The server uses `tsconfig.build.json` for production builds:
+
+```json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false, // Enable JavaScript output
+    "outDir": "dist", // Output directory
+    "rootDir": "src", // Source directory
+    "declaration": true, // Generate .d.ts files (for client import)
+    "composite": true // Enable project references
+  },
+  "references": [
+    { "path": "../models/tsconfig.build.json" } // Depend on models
+  ]
+}
+```
+
+**Build Output:**
+
+- JavaScript files: `dist/**/*.js`
+- Type declarations: `dist/**/*.d.ts` (used by `@elsie/client` for type safety)
+- Source maps: `dist/**/*.js.map` and `dist/**/*.d.ts.map`
+
+**Important:** The `dist` folder must exist with type declarations for the client to import `@elsie/server` types (e.g., `AppRouter`).
+
 ## 📦 Updating Dependencies
 
 ### Interactive Update (Recommended)

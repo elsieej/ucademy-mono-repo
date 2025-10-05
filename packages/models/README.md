@@ -97,6 +97,26 @@ pnpm lint
 pnpm format
 ```
 
+### Build Output
+
+The build process uses `tsconfig.build.json` with the following configuration:
+
+```json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false, // Enable JavaScript output
+    "outDir": "dist", // Output directory
+    "rootDir": "src", // Source directory
+    "declaration": true, // Generate .d.ts files
+    "declarationMap": true, // Generate .d.ts.map files
+    "composite": true // Enable project references
+  }
+}
+```
+
+**Important:** `noEmit: false` is required to generate JavaScript files. Without it, TypeScript only performs type-checking.
+
 ## 🔄 Watch Mode
 
 The models package includes TypeScript watch mode for development:

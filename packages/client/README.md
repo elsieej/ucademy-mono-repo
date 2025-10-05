@@ -189,6 +189,29 @@ The project uses a dual tsconfig setup:
 
 This allows proper type-checking for both your app code and build configuration.
 
+### Importing Server Types
+
+The client imports the `AppRouter` type from `@elsie/server` for end-to-end type safety:
+
+```typescript
+import type { AppRouter } from '@elsie/server'
+```
+
+**Requirements:**
+
+1. `@elsie/server` must be listed in `package.json` dependencies
+2. The server package must have `main` and `types` fields in its `package.json`:
+   ```json
+   {
+     "main": "dist/index.js",
+     "types": "dist/index.d.ts"
+   }
+   ```
+3. The server must be built (`pnpm -F @elsie/server build`) to generate type declarations
+4. `tsconfig.app.json` must extend the base config to resolve `@elsie/*` path mappings
+
+**Note:** Use `import type` (not `import`) to ensure only types are imported at compile-time, preventing server code from bundling into the client.
+
 ## 🎨 Styling with Tailwind CSS v4
 
 The project uses **Tailwind CSS v4** with the new Vite plugin:

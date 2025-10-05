@@ -1,6 +1,6 @@
 import { serverConfigSchema } from '@elsie/models'
 import dotenv from 'dotenv'
-import { logger } from '../libs/pino'
+import { logger } from '../lib/pino'
 import z from 'zod'
 dotenv.config()
 
