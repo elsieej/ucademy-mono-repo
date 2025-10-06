@@ -115,7 +115,21 @@ The build process uses `tsconfig.build.json` with the following configuration:
 }
 ```
 
-**Important:** `noEmit: false` is required to generate JavaScript files. Without it, TypeScript only performs type-checking.
+**Build Process:**
+
+```bash
+# 1. Compile TypeScript to JavaScript
+tsc -p tsconfig.build.json
+
+# 2. Resolve path aliases (@/* → actual paths)
+tsc-alias -p tsconfig.build.json
+```
+
+**Important:**
+
+- `noEmit: false` is required to generate JavaScript files
+- `tsc-alias` resolves path aliases like `@/schema` → `../../schema` in the output
+- Without path resolution, imports will fail when used by other packages
 
 ## 🔄 Watch Mode
 
@@ -130,6 +144,10 @@ This automatically rebuilds the package whenever you make changes to source file
 ## 📦 Dependencies
 
 - **zod** - Schema validation and type inference
+
+### Dev Dependencies
+
+- **tsc-alias** `^1.8.16` - Path alias resolution for compiled output
 
 ## 📦 Updating Dependencies
 

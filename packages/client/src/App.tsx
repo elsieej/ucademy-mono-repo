@@ -5,6 +5,7 @@ import type { AppRouter } from '@elsie/server'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createTRPCClient, httpBatchLink } from '@trpc/client'
 import { useState } from 'react'
+import superjson from 'superjson'
 import { config } from './constants/config'
 import { TRPCProvider } from './lib/trpc'
 import { routeTree } from './routeTree.gen'
@@ -54,7 +55,8 @@ const App = () => {
     createTRPCClient<AppRouter>({
       links: [
         httpBatchLink({
-          url: config.VITE_API_URL
+          url: config.VITE_API_URL,
+          transformer: superjson
         })
       ]
     })
