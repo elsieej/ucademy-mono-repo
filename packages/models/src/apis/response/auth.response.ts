@@ -15,3 +15,7 @@ export const userRegisterResponseSchema = z.object({
 })
 
 export type UserRegisterResponseSchema = z.infer<typeof userRegisterResponseSchema>
+
+export const userResponseSchema = userSchema.omit({ password: true })
+
+export type UserResponseSchema = z.infer<typeof userResponseSchema>

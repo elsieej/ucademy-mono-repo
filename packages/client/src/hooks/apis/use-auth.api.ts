@@ -1,12 +1,9 @@
 import { useTRPC } from '@/lib/trpc'
-import type { UserRegisterResponseSchema } from '@elsie/models'
 import { useMutation } from '@tanstack/react-query'
 
-export const useAuthRegisterMutation = (onSuccess?: (data: UserRegisterResponseSchema) => void) => {
+export const useAuthRegisterMutation = (
+  mutationOptions?: Parameters<ReturnType<typeof useTRPC>['auth']['register']['mutationOptions']>[0]
+) => {
   const trpc = useTRPC()
-  return useMutation(
-    trpc.auth.register.mutationOptions({
-      onSuccess
-    })
-  )
+  return useMutation(trpc.auth.register.mutationOptions(mutationOptions))
 }

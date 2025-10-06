@@ -3,17 +3,32 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { useAuthRegisterMutation } from '@/hooks/apis/use-auth.api'
+import { useAuth } from '@/providers/auth.provider'
 import { type UserRegisterConfirmPasswordDto, userRegisterConfirmPasswordDto } from '@elsie/models'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useId } from 'react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 
 const RegisterFormComponent = () => {
+  const { updateUser } = useAuth()
   const emailInputId = useId()
   const nameInputId = useId()
   const passwordInputId = useId()
   const confirmPasswordInputId = useId()
-  const { mutate: register, isPending } = useAuthRegisterMutation()
+  const { mutate: register, isPending } = useAuthRegisterMutation({
+    meta: {
+      successMessage: 'User registered successfully',
+      errorMessage: 'Failed to register user'
+    },
+    onSuccess(data, _1, _2, context) {
+      toast.success(context.meta?.successMessage)
+      updateUser(data.user)
+    },
+    onError(_1, _2, _3, context) {
+      toast.error(context.meta?.errorMessage)
+    }
+  })
 
   const form = useForm<UserRegisterConfirmPasswordDto>({
     resolver: zodResolver(userRegisterConfirmPasswordDto),

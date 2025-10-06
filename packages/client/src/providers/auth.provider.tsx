@@ -1,16 +1,17 @@
+import type { UserResponseSchema } from '@elsie/models'
 import { createContext, type PropsWithChildren, use, useState } from 'react'
 
 export type AuthState = {
   isAuthenticated: boolean
-  user: unknown
-  updateUser: (user: unknown) => void
+  user: UserResponseSchema | null
+  updateUser: (user: UserResponseSchema) => void
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined)
 
 const AuthProvider = ({ children }: PropsWithChildren) => {
-  const [user, setUser] = useState<unknown>(null)
-  const updateUser = (user: unknown) => {
+  const [user, setUser] = useState<UserResponseSchema | null>(null)
+  const updateUser = (user: UserResponseSchema) => {
     setUser(user)
   }
   const isAuthenticated = user !== null

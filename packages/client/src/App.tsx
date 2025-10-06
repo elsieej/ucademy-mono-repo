@@ -1,8 +1,9 @@
 import { createRouter, RouterProvider } from '@tanstack/react-router'
 import { useAuth } from './providers/auth.provider'
 // Import the generated route tree
+import { Toaster } from '@/components/ui/sonner'
 import type { AppRouter } from '@elsie/server'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, type QueryKey } from '@tanstack/react-query'
 import { createTRPCClient, httpBatchLink } from '@trpc/client'
 import { useState } from 'react'
 import superjson from 'superjson'
@@ -20,6 +21,16 @@ const router = createRouter({
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router
+  }
+}
+
+declare module '@tanstack/react-query' {
+  interface Register {
+    mutationMeta: {
+      invalidatesQuery?: QueryKey
+      successMessage?: string
+      errorMessage?: string
+    }
   }
 }
 
@@ -67,6 +78,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
         <RouterProvider router={router} context={{ auth }} />
+        <Toaster />
       </TRPCProvider>
     </QueryClientProvider>
   )
