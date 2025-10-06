@@ -1,3 +1,4 @@
+import * as schema from '@/db/schema'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import { config } from '../constants/config'
@@ -10,4 +11,4 @@ const pool = new Pool({
   database: config.dbName
 })
 
-export const db = drizzle({ client: pool })
+export const db = drizzle({ client: pool, schema })

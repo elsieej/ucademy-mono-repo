@@ -19,3 +19,10 @@ export const userRegisterConfirmPasswordDto = userRegisterDto
   })
 
 export type UserRegisterConfirmPasswordDto = z.infer<typeof userRegisterConfirmPasswordDto>
+
+export const userLoginDto = userSchema.pick({
+  email: true,
+  password: true
+})
+
+export type UserLoginDto = z.infer<typeof userLoginDto>

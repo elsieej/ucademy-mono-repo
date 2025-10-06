@@ -7,3 +7,10 @@ export const useAuthRegisterMutation = (
   const trpc = useTRPC()
   return useMutation(trpc.auth.register.mutationOptions(mutationOptions))
 }
+
+export const useAuthLoginMutation = (
+  mutationOptions?: Parameters<ReturnType<typeof useTRPC>['auth']['login']['mutationOptions']>[0]
+) => {
+  const trpc = useTRPC()
+  return useMutation(trpc.auth.login.mutationOptions(mutationOptions))
+}
