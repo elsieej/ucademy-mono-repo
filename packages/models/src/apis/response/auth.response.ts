@@ -1,16 +1,21 @@
-import { userSchema } from '@/schema'
+import { userIdSchema, userSchema } from '@/schema'
 import z from 'zod'
 
 export const tokenPayloadSchema = z.object({
-  userId: z.uuid(),
-  email: z.email()
+  email: z.email(),
+  userId: userIdSchema
 })
 
 export type TokenPayloadSchema = z.infer<typeof tokenPayloadSchema>
 
-export const userRegisterResponseSchema = z.object({
+export const tokenResponseSchema = z.object({
   accessToken: z.string(),
-  refreshToken: z.string(),
+  refreshToken: z.string()
+})
+
+export type TokenResponseSchema = z.infer<typeof tokenResponseSchema>
+
+export const userRegisterResponseSchema = tokenResponseSchema.pick({ accessToken: true, refreshToken: true }).extend({
   user: userSchema.omit({ password: true })
 })
 

@@ -1,11 +1,11 @@
-import { createRouter, RouterProvider } from '@tanstack/react-router'
+import { createRouter, RouterProvider, useLocation } from '@tanstack/react-router'
 import { useAuth } from './providers/auth.provider'
 // Import the generated route tree
 import { Toaster } from '@/components/ui/sonner'
 import type { AppRouter } from '@elsie/server'
 import { QueryClient, QueryClientProvider, type QueryKey } from '@tanstack/react-query'
-import { createTRPCClient, httpBatchLink } from '@trpc/client'
-import { useState } from 'react'
+import { createTRPCClient, httpBatchLink, loggerLink } from '@trpc/client'
+import { useMemo, useRef } from 'react'
 import superjson from 'superjson'
 import { config } from './constants/config'
 import { TRPCProvider } from './lib/trpc'
@@ -60,19 +60,109 @@ function getQueryClient() {
   }
 }
 
+const createTRPCClientWithAuth = (
+  getToken: () => string | null,
+  onTokenRefresh?: (tokens: { accessToken: string; refreshToken: string }) => void,
+  onAuthFailure?: () => void
+) => {
+  return createTRPCClient<AppRouter>({
+    links: [
+      loggerLink({
+        enabled: (opts) => import.meta.env.DEV || (opts.direction === 'down' && opts.result instanceof Error)
+      }),
+      httpBatchLink({
+        url: config.VITE_API_URL,
+        transformer: superjson,
+        headers: () => {
+          const token = getToken()
+          return token ? { Authorization: `Bearer ${token}` } : {}
+        },
+        fetch: async (url, options = {}) => {
+          const response = await fetch(url, options)
+
+          // Handle 401 - Token expired
+          if (response.status === 401 && onTokenRefresh) {
+            const refreshToken = localStorage.getItem('refreshToken')
+            if (!refreshToken) {
+              // No refresh token, redirect to login
+              return response
+            }
+
+            try {
+              // Create temporary client for refresh (without auth)
+              const tempClient = createTRPCClient<AppRouter>({
+                links: [
+                  httpBatchLink({
+                    url: config.VITE_API_URL,
+                    transformer: superjson
+                  })
+                ]
+              })
+
+              // Try to refresh token
+              const newTokens = await tempClient.auth.refresh.mutate({ refreshToken })
+
+              // Update tokens
+              onTokenRefresh(newTokens)
+              localStorage.setItem('accessToken', newTokens.accessToken)
+              localStorage.setItem('refreshToken', newTokens.refreshToken)
+
+              // Retry original request with new token
+              return fetch(url, {
+                ...options,
+                headers: {
+                  ...options.headers,
+                  Authorization: `Bearer ${newTokens.accessToken}`
+                }
+              })
+            } catch {
+              // Refresh failed, clear tokens and trigger logout
+              onAuthFailure?.()
+              return response
+            }
+          }
+
+          return response
+        }
+      })
+    ]
+  })
+}
+
 const App = () => {
+  const location = useLocation()
   const queryClient = getQueryClient()
-  const [trpcClient] = useState(() =>
-    createTRPCClient<AppRouter>({
-      links: [
-        httpBatchLink({
-          url: config.VITE_API_URL,
-          transformer: superjson
-        })
-      ]
-    })
-  )
   const auth = useAuth()
+
+  // Stable reference to getToken function (avoids client recreation)
+  const getTokenRef = useRef<() => string | null>(() => auth.accessToken)
+  getTokenRef.current = () => auth.accessToken
+
+  // Stable reference to token refresh callback
+  const onTokenRefreshRef = useRef<(tokens: { accessToken: string; refreshToken: string }) => void>(() => {})
+  onTokenRefreshRef.current = (tokens) => {
+    // Update auth state with new tokens
+    auth.setAccessToken(tokens.accessToken)
+    auth.setRefreshToken(tokens.refreshToken)
+  }
+
+  // Stable reference to auth failure callback
+  const onAuthFailureRef = useRef<() => void>(() => {})
+  onAuthFailureRef.current = () => {
+    auth.logout()
+    router.navigate({ to: '/auth/login', search: { redirect: location.pathname } })
+  }
+
+  // Create tRPC client once (never recreates)
+  const trpcClient = useMemo(
+    () =>
+      createTRPCClientWithAuth(
+        () => getTokenRef.current(),
+        (tokens) => onTokenRefreshRef.current?.(tokens),
+        () => onAuthFailureRef.current()
+      ),
+    []
+  )
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -9,16 +9,30 @@ This package provides:
 - **Zod Schemas** - Runtime validation and type inference
 - **TypeScript Types** - Shared types across client and server
 - **Config Schemas** - Environment variable validation
+- **DTOs** - Data Transfer Objects for API requests
+- **Response Schemas** - Type-safe API responses
+- **Branded Types** - Type-safe IDs (UserId, etc.)
 
 ## 🏗️ Structure
 
 ```
 src/
-├── configs/          # Configuration schemas
-│   └── server.config.ts  # Server environment validation
-├── courses/          # Course data models
+├── apis/                  # API-related schemas
+│   ├── dto/               # Data Transfer Objects
+│   │   ├── auth.dto.ts    # Auth request DTOs
+│   │   └── user.dto.ts    # User request DTOs
+│   ├── response/          # API response schemas
+│   │   └── auth.response.ts  # Auth response schemas
 │   └── index.ts
-└── index.ts          # Main exports
+├── configs/               # Configuration schemas
+│   ├── client.config.ts   # Client environment validation
+│   └── server.config.ts   # Server environment validation
+├── schema/                # Domain models
+│   ├── user.schema.ts     # User model with branded ID
+│   └── index.ts
+├── utils/                 # Utility functions
+│   └── id-brand.ts        # Branded type helper
+└── index.ts               # Main exports
 ```
 
 ## 📚 Usage
@@ -26,27 +40,118 @@ src/
 ### In Server Package
 
 ```typescript
-import { serverConfigSchema, type ServerConfig } from '@elsie/models'
+import { serverConfigSchema, userRegisterDto, userRegisterResponseSchema, UserId } from '@elsie/models'
 
 // Validate environment variables
 const config = serverConfigSchema.parse(process.env)
+
+// Validate request body
+const input = userRegisterDto.parse(req.body)
+
+// Type-safe user ID
+const userId: UserId = user.id as UserId
 ```
 
 ### In Client Package
 
 ```typescript
-import { type Course } from '@elsie/models'
+import { type UserRegisterDto, type UserRegisterResponseSchema, type TokenPayloadSchema } from '@elsie/models'
 
-const course: Course = {
-  id: '1',
-  title: 'Introduction to TypeScript',
-  description: 'Learn TypeScript basics',
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString()
+// Type-safe request
+const registerData: UserRegisterDto = {
+  name: 'John Doe',
+  email: 'john@example.com',
+  password: 'password123'
 }
+
+// Type-safe response
+const response: UserRegisterResponseSchema = await trpc.auth.register.mutate(registerData)
 ```
 
 ## 🔧 Available Schemas
+
+### Authentication DTOs
+
+**Register:**
+
+```typescript
+{
+  name: string
+  email: string
+  password: string
+}
+```
+
+**Login:**
+
+```typescript
+{
+  email: string
+  password: string
+}
+```
+
+**Refresh:**
+
+```typescript
+{
+  refreshToken: string
+}
+```
+
+### Response Schemas
+
+**Register/Login Response:**
+
+```typescript
+{
+  accessToken: string
+  refreshToken: string
+  user: {
+    id: UserId // Branded type
+    name: string
+    email: string
+    createdAt: Date
+    updatedAt: Date | null
+    deletedAt: Date | null
+  }
+}
+```
+
+**Token Response:**
+
+```typescript
+{
+  accessToken: string
+  refreshToken: string
+}
+```
+
+**Token Payload:**
+
+```typescript
+{
+  userId: UserId // Branded type
+  email: string
+}
+```
+
+### Branded Types
+
+**UserId:**
+
+```typescript
+import { zIdBrand } from '@/utils/id-brand'
+
+const userId = zIdBrand('UserId') // z.string().uuid().brand<'UserId'>()
+type UserId = z.infer<typeof userId>
+```
+
+Benefits:
+
+- ✅ Type-safe - Can't mix up different ID types
+- ✅ Runtime validated - Ensures valid UUID format
+- ✅ Self-documenting - Clear intent in type signatures
 
 ### Server Config Schema
 
@@ -66,18 +171,6 @@ Validates server environment variables:
   jwtRefreshTokenExpired: string
   jwtRefreshTokenSecret: string
   nodeEnv: 'development' | 'production'
-}
-```
-
-### Course Model
-
-```typescript
-{
-  id: string
-  title: string
-  description: string
-  createdAt: string
-  updatedAt: string
 }
 ```
 

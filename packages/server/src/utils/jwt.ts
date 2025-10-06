@@ -1,7 +1,8 @@
-import jwt from 'jsonwebtoken'
 import { config } from '@/constants/config'
-import ms, { StringValue } from 'ms'
+import { logger } from '@/lib/pino'
 import { TokenPayloadSchema } from '@elsie/models'
+import jwt from 'jsonwebtoken'
+import ms, { StringValue } from 'ms'
 
 export const signAccessToken = (payload: TokenPayloadSchema) => {
   return jwt.sign(payload, config.jwtAccessTokenSecret, {
@@ -11,9 +12,15 @@ export const signAccessToken = (payload: TokenPayloadSchema) => {
 }
 
 export const verifyAccessToken = (token: string) => {
-  return jwt.verify(token, config.jwtAccessTokenSecret, {
-    algorithms: ['HS256']
-  })
+  try {
+    const decoded = jwt.verify(token, config.jwtAccessTokenSecret, {
+      algorithms: ['HS256']
+    }) as TokenPayloadSchema
+    return decoded
+  } catch (error) {
+    logger.error(error, '[SERVER][JWT] Failed to verify access token')
+    return null
+  }
 }
 
 export const signRefreshToken = (payload: TokenPayloadSchema) => {
@@ -24,7 +31,13 @@ export const signRefreshToken = (payload: TokenPayloadSchema) => {
 }
 
 export const verifyRefreshToken = (token: string) => {
-  return jwt.verify(token, config.jwtRefreshTokenSecret, {
-    algorithms: ['HS256']
-  })
+  try {
+    const decoded = jwt.verify(token, config.jwtRefreshTokenSecret, {
+      algorithms: ['HS256']
+    }) as TokenPayloadSchema
+    return decoded
+  } catch (error) {
+    logger.error(error, '[SERVER][JWT] Failed to verify refresh token')
+    return null
+  }
 }

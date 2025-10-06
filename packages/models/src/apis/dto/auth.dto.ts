@@ -26,3 +26,9 @@ export const userLoginDto = userSchema.pick({
 })
 
 export type UserLoginDto = z.infer<typeof userLoginDto>
+
+export const refreshTokenDto = z.object({
+  refreshToken: z.string()
+})
+
+export type RefreshTokenDto = z.infer<typeof refreshTokenDto>

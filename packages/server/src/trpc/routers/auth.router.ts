@@ -1,5 +1,13 @@
-import { publicProcedure, router } from '../trpc'
-import { userRegisterResponseSchema, userRegisterDto, userLoginDto, userLoginResponseSchema } from '@elsie/models'
+import { protectedProcedure, publicProcedure, router } from '../trpc'
+import {
+  userRegisterResponseSchema,
+  userRegisterDto,
+  userLoginDto,
+  userLoginResponseSchema,
+  userResponseSchema,
+  refreshTokenDto,
+  tokenResponseSchema
+} from '@elsie/models'
 import { authService } from '../services/auth.service'
 
 export const authRouter = router({
@@ -14,5 +22,14 @@ export const authRouter = router({
     .output(userLoginResponseSchema)
     .mutation(({ input }) => {
       return authService.login(input)
-    })
+    }),
+  refresh: publicProcedure
+    .input(refreshTokenDto)
+    .output(tokenResponseSchema)
+    .mutation(({ input }) => {
+      return authService.refresh(input)
+    }),
+  getMe: protectedProcedure.output(userResponseSchema).query(({ ctx }) => {
+    return ctx.user
+  })
 })

@@ -4,10 +4,10 @@ import { logger } from '@/lib/pino'
 import { getDbErrorMessage } from '@/utils/errors'
 import { hashPassword, verifyPassword } from '@/utils/hashing'
 import { tryCatch } from '@/utils/try-catch'
-import { UserLoginDto, UserRegisterDto, UserResponseSchema } from '@elsie/models'
+import { RefreshTokenDto, UserId, UserLoginDto, UserRegisterDto, UserResponseSchema } from '@elsie/models'
 import { TRPCError } from '@trpc/server'
-import { eq } from 'drizzle-orm'
 import { tokenService } from './token.service'
+import { userService } from './users.service'
 
 export const authService = {
   register: async (input: UserRegisterDto) => {
@@ -32,7 +32,7 @@ export const authService = {
     }
 
     // Sign tokens
-    const userId = insertedUser[0].id
+    const userId = insertedUser[0].id as UserId
     const [tokens, tokensError] = await tryCatch(
       Promise.all([tokenService.signAccessToken({ userId, email }), tokenService.signRefreshToken({ userId, email })])
     )
@@ -51,7 +51,7 @@ export const authService = {
   login: async (input: UserLoginDto) => {
     const { email, password } = input
 
-    const [user, userError] = await tryCatch(db.query.users.findFirst({ where: eq(users.email, email) }))
+    const [user, userError] = await tryCatch(userService.findByEmail(email))
 
     if (userError) {
       logger.error(userError, '[SERVER][AUTH] Failed to find user')
@@ -77,8 +77,8 @@ export const authService = {
 
     const [tokens, tokensError] = await tryCatch(
       Promise.all([
-        tokenService.signAccessToken({ userId: user.id, email }),
-        tokenService.signRefreshToken({ userId: user.id, email })
+        tokenService.signAccessToken({ userId: user.id as UserId, email }),
+        tokenService.signRefreshToken({ userId: user.id as UserId, email })
       ])
     )
 
@@ -91,6 +91,50 @@ export const authService = {
       accessToken: tokens[0],
       refreshToken: tokens[1],
       user: user as UserResponseSchema
+    }
+  },
+  refresh: async (input: RefreshTokenDto) => {
+    const { refreshToken } = input
+
+    const [decoded, decodedError] = await tryCatch(tokenService.verifyRefreshToken(refreshToken))
+
+    if (decodedError) {
+      logger.error(decodedError, '[SERVER][AUTH] Failed to verify refresh token')
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to verify refresh token' })
+    }
+
+    if (!decoded) {
+      logger.error('[SERVER][AUTH] Invalid refresh token')
+      throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid refresh token' })
+    }
+
+    const [user, userError] = await tryCatch(userService.findById(decoded.userId))
+
+    if (userError) {
+      logger.error(userError, '[SERVER][AUTH] Failed to find user')
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to find user' })
+    }
+
+    if (!user) {
+      logger.error('[SERVER][AUTH] User not found')
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' })
+    }
+
+    const [tokens, tokensError] = await tryCatch(
+      Promise.all([
+        tokenService.signAccessToken({ userId: decoded.userId, email: decoded.email }),
+        tokenService.signRefreshToken({ userId: decoded.userId, email: decoded.email })
+      ])
+    )
+
+    if (tokensError) {
+      logger.error(tokensError, '[SERVER][AUTH] Failed to sign tokens')
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to sign tokens' })
+    }
+
+    return {
+      accessToken: tokens[0],
+      refreshToken: tokens[1]
     }
   }
 }

@@ -7,9 +7,10 @@ Modern React frontend application for the Elsie platform with end-to-end type sa
 - **React 19** - Latest React with improved performance
 - **TypeScript** - Type-safe development
 - **Vite 7** - Lightning-fast build tool and dev server
-- **TanStack Router** - Type-safe file-based routing
+- **TanStack Router** - Type-safe file-based routing with smart redirects
 - **TanStack Query** - Powerful data fetching and caching
-- **tRPC** - End-to-end type-safe APIs
+- **tRPC** - End-to-end type-safe APIs with auto token refresh (NEW!)
+- **Optimized Client** - Zero-recreation tRPC client with React refs (NEW!)
 - **Tailwind CSS v4** - Utility-first CSS framework
 - **Radix UI + shadcn/ui** - Accessible and beautiful components
 - **Lucide React** - Modern icon library
@@ -27,8 +28,14 @@ src/
 ├── features/           # Feature-based modules
 │   ├── auth/           # Authentication features
 │   │   ├── login/      # Login feature
+│   │   │   └── login-form.component.tsx
 │   │   └── register/   # Register feature
+│   │       └── register-form.component.tsx
 │   └── shared/         # Shared feature components
+├── hooks/              # Custom React hooks
+│   └── apis/           # API hooks (tRPC wrappers)
+│       ├── use-auth.api.ts
+│       └── use-health.api.ts
 ├── lib/                # Utility functions
 ├── providers/          # React context providers
 │   └── auth.provider.tsx  # Authentication context
@@ -109,11 +116,13 @@ Changes flow automatically: Models → Server → Client
 - **@tanstack/react-router** - Type-safe routing
 - **@tanstack/react-query** - Data fetching and caching
 - **@trpc/client** - tRPC client for type-safe APIs
+- **superjson** - Automatic serialization (Date, Map, Set)
 - **tailwindcss** `^4.1.14` - Utility-first CSS
 - **@radix-ui/react-slot** - Radix UI primitives
 - **lucide-react** - Modern icon library
 - **class-variance-authority** - CVA for component variants
 - **clsx** & **tailwind-merge** - Class name utilities
+- **sonner** - Beautiful toast notifications
 
 ### Dev Dependencies
 
@@ -127,36 +136,173 @@ Changes flow automatically: Models → Server → Client
 
 ## 🔗 End-to-End Type Safety with tRPC
 
-The client connects to the backend using **tRPC** for complete type safety:
+The client connects to the backend using **tRPC** for complete type safety with authentication and automatic token refresh.
 
-### Setup tRPC Client
+### tRPC Client with Auto Token Refresh ⚡
+
+The tRPC client includes automatic token refresh on 401 responses:
 
 ```typescript
-import { createTRPCClient, httpBatchLink } from '@trpc/client'
+import { createTRPCClient, httpBatchLink, loggerLink } from '@trpc/client'
 import type { AppRouter } from '@elsie/server'
+import superjson from 'superjson'
 
-const trpc = createTRPCClient<AppRouter>({
-  links: [
-    httpBatchLink({
-      url: 'http://localhost:3000/trpc'
-    })
-  ]
-})
+const createTRPCClientWithAuth = (
+  getToken: () => string | null,
+  onTokenRefresh?: (tokens: { accessToken: string; refreshToken: string }) => void,
+  onAuthFailure?: () => void
+) => {
+  return createTRPCClient<AppRouter>({
+    links: [
+      loggerLink({
+        enabled: (opts) => import.meta.env.DEV || opts.result instanceof Error
+      }),
+      httpBatchLink({
+        url: 'http://localhost:3000/trpc',
+        transformer: superjson, // Handles Date, Map, Set
+        headers: () => {
+          const token = getToken()
+          return token ? { Authorization: `Bearer ${token}` } : {}
+        },
+        fetch: async (url, options = {}) => {
+          const response = await fetch(url, options)
+
+          // Auto-refresh on 401 (token expired)
+          if (response.status === 401 && onTokenRefresh) {
+            const refreshToken = localStorage.getItem('refreshToken')
+            if (!refreshToken) return response
+
+            try {
+              // Refresh tokens
+              const tempClient = createTRPCClient<AppRouter>({
+                /* ... */
+              })
+              const newTokens = await tempClient.auth.refresh.mutate({ refreshToken })
+
+              // Update state and retry request
+              onTokenRefresh(newTokens)
+              return fetch(url, {
+                ...options,
+                headers: { ...options.headers, Authorization: `Bearer ${newTokens.accessToken}` }
+              })
+            } catch {
+              // Refresh failed - logout
+              onAuthFailure?.()
+              return response
+            }
+          }
+
+          return response
+        }
+      })
+    ]
+  })
+}
 ```
+
+**Features:**
+
+- ✅ **Automatic refresh** - Intercepts 401 responses and refreshes tokens
+- ✅ **Transparent retry** - Retries failed request with new token
+- ✅ **Graceful logout** - Redirects to login with original URL on refresh failure
+- ✅ **No user intervention** - Completely automatic and transparent
+
+### Client Performance Optimization 🚀
+
+The tRPC client is created once and never recreates, using React refs for stable callbacks:
+
+```typescript
+const App = () => {
+  const auth = useAuth()
+
+  // Stable refs - update on every render without recreating client
+  const getTokenRef = useRef<() => string | null>(() => auth.accessToken)
+  getTokenRef.current = () => auth.accessToken
+
+  const onTokenRefreshRef = useRef<(tokens) => void>(() => {})
+  onTokenRefreshRef.current = (tokens) => {
+    auth.setAccessToken(tokens.accessToken)
+    auth.setRefreshToken(tokens.refreshToken)
+  }
+
+  const onAuthFailureRef = useRef<() => void>(() => {})
+  onAuthFailureRef.current = () => {
+    auth.logout()
+    router.navigate({ to: '/auth/login', search: { redirect: location.pathname } })
+  }
+
+  // Client created ONCE - never recreates (empty deps array)
+  const trpcClient = useMemo(
+    () => createTRPCClientWithAuth(
+      () => getTokenRef.current(),
+      (tokens) => onTokenRefreshRef.current?.(tokens),
+      () => onAuthFailureRef.current()
+    ),
+    []
+  )
+
+  return <TRPCProvider trpcClient={trpcClient}>...</TRPCProvider>
+}
+```
+
+**Benefits:**
+
+- ⚡ **Zero recreations** - Client persists for app lifetime
+- 🎯 **Latest values** - Refs always access current auth state
+- 🔥 **No re-renders** - Empty deps array prevents unnecessary renders
+- 📍 **Smart redirects** - Preserves original URL on logout
 
 ### Using tRPC with React Query
 
-```typescript
-import { useQuery } from '@tanstack/react-query'
+**Custom Hooks Pattern:**
 
-function HealthCheck() {
-  const { data, isLoading } = useQuery({
-    queryKey: ['health'],
-    queryFn: () => trpc.health.check.query()
-  })
+```typescript
+// hooks/apis/use-auth.api.ts
+import { useTRPC } from '@/lib/trpc'
+import { useMutation, useQuery } from '@tanstack/react-query'
+
+export const useAuthGetMeQuery = (
+  queryOptions?: Parameters<ReturnType<typeof useTRPC>['auth']['getMe']['queryOptions']>[0]
+) => {
+  const trpc = useTRPC()
+  return useQuery(trpc.auth.getMe.queryOptions(queryOptions))
+}
+
+export const useAuthLoginMutation = (
+  mutationOptions?: Parameters<ReturnType<typeof useTRPC>['auth']['login']['mutationOptions']>[0]
+) => {
+  const trpc = useTRPC()
+  return useMutation(trpc.auth.login.mutationOptions(mutationOptions))
+}
+```
+
+**Usage in Components:**
+
+```typescript
+import { useAuthGetMeQuery, useAuthLoginMutation } from '@/hooks/apis/use-auth.api'
+
+function Profile() {
+  const { data: user, isLoading } = useAuthGetMeQuery()
 
   if (isLoading) return <div>Loading...</div>
-  return <div>Status: {data?.status}</div>
+  return <div>Hello, {user?.name}!</div>
+}
+
+function LoginForm() {
+  const loginMutation = useAuthLoginMutation({
+    onSuccess: (data) => {
+      // Save tokens
+      localStorage.setItem('accessToken', data.accessToken)
+      localStorage.setItem('refreshToken', data.refreshToken)
+    }
+  })
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    loginMutation.mutate({ email: '...', password: '...' })
+  }
+
+  return <form onSubmit={handleSubmit}>...</form>
 }
 ```
 
@@ -166,6 +312,8 @@ function HealthCheck() {
 - ✅ **Auto-completion** - IDE knows all API endpoints and types
 - ✅ **Runtime safety** - Zod validates data at runtime
 - ✅ **Instant feedback** - TypeScript errors on API changes
+- ✅ **Automatic auth** - Token included in every request
+- ✅ **SuperJSON** - Handles Date, Map, Set automatically
 
 ## 🏗️ Building for Production
 
