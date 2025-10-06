@@ -1,3 +1,4 @@
+import InputWithStrengthPassword from '@/components/custom/input-with-password-strength'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -67,7 +68,7 @@ const LoginFormComponent = () => {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type='password' id={passwordInputId} placeholder='enter your password' {...field} />
+                    <InputWithStrengthPassword id={passwordInputId} placeholder='enter your password' {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

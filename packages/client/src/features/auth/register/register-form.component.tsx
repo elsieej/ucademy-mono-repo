@@ -88,7 +88,17 @@ const RegisterFormComponent = () => {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <InputWithStrengthPassword id={passwordInputId} placeholder='enter your password' {...field} />
+                    <InputWithStrengthPassword
+                      requirements={[
+                        { regex: /.{8,}/, text: 'At least 8 characters' },
+                        { regex: /[0-9]/, text: 'At least 1 number' },
+                        { regex: /[a-z]/, text: 'At least 1 lowercase letter' },
+                        { regex: /[A-Z]/, text: 'At least 1 uppercase letter' }
+                      ]}
+                      id={passwordInputId}
+                      placeholder='enter your password'
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -102,7 +112,11 @@ const RegisterFormComponent = () => {
                 <FormItem>
                   <FormLabel>Confirm Password</FormLabel>
                   <FormControl>
-                    <Input type='password' id={confirmPasswordInputId} placeholder='confirm your password' {...field} />
+                    <InputWithStrengthPassword
+                      id={confirmPasswordInputId}
+                      placeholder='confirm your password'
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

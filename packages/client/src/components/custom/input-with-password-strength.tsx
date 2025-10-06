@@ -1,33 +1,31 @@
 import { CheckIcon, EyeIcon, EyeOffIcon, XIcon } from 'lucide-react'
-import { useId, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Input } from '../ui/input'
+type Props = {
+  requirements?: Array<{
+    regex: RegExp
+    text: string
+  }>
+} & React.ComponentProps<'input'>
 
-const InputWithStrengthPassword = ({ ...props }: React.ComponentProps<'input'>) => {
-  const id = useId()
+const InputWithStrengthPassword = ({ requirements, ...props }: Props) => {
   const [isVisible, setIsVisible] = useState<boolean>(false)
 
   const toggleVisibility = () => setIsVisible((prevState) => !prevState)
 
-  const checkStrength = (pass: string) => {
-    const requirements = [
-      { regex: /.{8,}/, text: 'At least 8 characters' },
-      { regex: /[0-9]/, text: 'At least 1 number' },
-      { regex: /[a-z]/, text: 'At least 1 lowercase letter' },
-      { regex: /[A-Z]/, text: 'At least 1 uppercase letter' }
-    ]
+  const checkStrength = (pass: typeof props.value) => {
+    if (!pass) return requirements?.map((req) => ({ met: false, text: req.text }))
 
-    if (!pass) return requirements.map((req) => ({ met: false, text: req.text }))
-
-    return requirements.map((req) => ({
-      met: req.regex.test(pass),
+    return requirements?.map((req) => ({
+      met: req.regex.test(pass.toString()),
       text: req.text
     }))
   }
 
-  const strength = checkStrength(props.value as string)
+  const strength = checkStrength(props.value)
 
   const strengthScore = useMemo(() => {
-    return strength.filter((req) => req.met).length
+    return strength?.filter((req) => req.met).length ?? 0
   }, [strength])
 
   const getStrengthColor = (score: number) => {
@@ -51,11 +49,11 @@ const InputWithStrengthPassword = ({ ...props }: React.ComponentProps<'input'>) 
       <div className='*:not-first:mt-2'>
         <div className='relative'>
           <Input
-            id={id}
+            id={props.id}
             className='pe-9'
             placeholder='Password'
             type={isVisible ? 'text' : 'password'}
-            aria-describedby={`${id}-description`}
+            aria-describedby={`${props.id}-description`}
             {...props}
           />
           <button
@@ -71,42 +69,46 @@ const InputWithStrengthPassword = ({ ...props }: React.ComponentProps<'input'>) 
         </div>
       </div>
 
-      {/* Password strength indicator */}
-      <div
-        className='bg-border mt-3 mb-4 h-1 w-full overflow-hidden rounded-full'
-        role='progressbar'
-        aria-valuenow={strengthScore}
-        aria-valuemin={0}
-        aria-valuemax={4}
-        aria-label='Password strength'
-      >
-        <div
-          className={`h-full ${getStrengthColor(strengthScore)} transition-all duration-500 ease-out`}
-          style={{ width: `${(strengthScore / 4) * 100}%` }}
-        ></div>
-      </div>
+      {requirements ? (
+        <>
+          {/* Password strength indicator */}
+          <div
+            className='bg-border mt-3 mb-4 h-1 w-full overflow-hidden rounded-full'
+            role='progressbar'
+            aria-valuenow={strengthScore}
+            aria-valuemin={0}
+            aria-valuemax={4}
+            aria-label='Password strength'
+          >
+            <div
+              className={`h-full ${getStrengthColor(strengthScore)} transition-all duration-500 ease-out`}
+              style={{ width: `${(strengthScore / 4) * 100}%` }}
+            ></div>
+          </div>
 
-      {/* Password strength description */}
-      <p id={`${id}-description`} className='text-foreground mb-2 text-sm font-medium'>
-        {getStrengthText(strengthScore)}. Must contain:
-      </p>
+          {/* Password strength description */}
+          <p id={`${props.id}-description`} className='text-foreground mb-2 text-sm font-medium'>
+            {getStrengthText(strengthScore)}. Must contain:
+          </p>
 
-      {/* Password requirements list */}
-      <ul className='space-y-1.5' aria-label='Password requirements'>
-        {strength.map((req, index) => (
-          <li key={index} className='flex items-center gap-2'>
-            {req.met ? (
-              <CheckIcon size={16} className='text-emerald-500' aria-hidden='true' />
-            ) : (
-              <XIcon size={16} className='text-muted-foreground/80' aria-hidden='true' />
-            )}
-            <span className={`text-xs ${req.met ? 'text-emerald-600' : 'text-muted-foreground'}`}>
-              {req.text}
-              <span className='sr-only'>{req.met ? ' - Requirement met' : ' - Requirement not met'}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
+          {/* Password requirements list */}
+          <ul className='space-y-1.5' aria-label='Password requirements'>
+            {strength?.map((req, index) => (
+              <li key={index} className='flex items-center gap-2'>
+                {req.met ? (
+                  <CheckIcon size={16} className='text-emerald-500' aria-hidden='true' />
+                ) : (
+                  <XIcon size={16} className='text-muted-foreground/80' aria-hidden='true' />
+                )}
+                <span className={`text-xs ${req.met ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+                  {req.text}
+                  <span className='sr-only'>{req.met ? ' - Requirement met' : ' - Requirement not met'}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
     </div>
   )
 }
