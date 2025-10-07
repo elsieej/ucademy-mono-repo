@@ -1,6 +1,6 @@
 import { UserResponseSchema, UserId } from '@elsie/models'
 
-interface CachedUser {
+type CachedUser = {
   user: UserResponseSchema
   timestamp: number
 }

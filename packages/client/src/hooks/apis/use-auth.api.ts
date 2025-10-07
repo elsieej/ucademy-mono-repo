@@ -1,11 +1,9 @@
 import { useTRPC } from '@/lib/trpc'
 import { useMutation, useQuery } from '@tanstack/react-query'
 
-export const useAuthGetMeQuery = (
-  queryOptions?: Parameters<ReturnType<typeof useTRPC>['auth']['getMe']['queryOptions']>[0]
-) => {
+export const useAuthGetMeQuery = (queryOptions?: { enabled?: boolean; retry?: boolean; staleTime?: number }) => {
   const trpc = useTRPC()
-  return useQuery(trpc.auth.getMe.queryOptions(queryOptions))
+  return useQuery(trpc.auth.getMe.queryOptions(undefined, queryOptions))
 }
 
 export const useAuthRegisterMutation = (

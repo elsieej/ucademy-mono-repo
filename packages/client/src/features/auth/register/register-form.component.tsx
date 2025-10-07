@@ -12,19 +12,21 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
 const RegisterFormComponent = () => {
-  const { updateUser } = useAuth()
+  const { login } = useAuth()
+
   const emailInputId = useId()
   const nameInputId = useId()
   const passwordInputId = useId()
   const confirmPasswordInputId = useId()
-  const { mutate: register, isPending } = useAuthRegisterMutation({
+
+  const { mutate: registerMutation, isPending } = useAuthRegisterMutation({
     meta: {
       successMessage: 'User registered successfully',
       errorMessage: 'Failed to register user'
     },
     onSuccess(data, _1, _2, context) {
       toast.success(context.meta?.successMessage)
-      updateUser(data.user)
+      login(data)
     },
     onError(_1, _2, _3, context) {
       toast.error(context.meta?.errorMessage)
@@ -43,7 +45,7 @@ const RegisterFormComponent = () => {
 
   const onSubmit = (data: UserRegisterConfirmPasswordDto) => {
     const { name, email, password } = data
-    register({ name, email, password })
+    registerMutation({ name, email, password })
   }
 
   return (

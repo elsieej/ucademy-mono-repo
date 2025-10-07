@@ -12,17 +12,17 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
 const LoginFormComponent = () => {
-  const { updateUser } = useAuth()
+  const { login } = useAuth()
   const emailInputId = useId()
   const passwordInputId = useId()
-  const { mutate: login, isPending } = useAuthLoginMutation({
+  const { mutate: loginMutation, isPending } = useAuthLoginMutation({
     meta: {
       successMessage: 'User logged in successfully',
       errorMessage: 'Failed to login user'
     },
     onSuccess(data, _1, _2, context) {
       toast.success(context.meta?.successMessage)
-      updateUser(data.user)
+      login(data)
     },
     onError(_1, _2, _3, context) {
       toast.error(context.meta?.errorMessage)
@@ -39,7 +39,7 @@ const LoginFormComponent = () => {
 
   const onSubmit = (data: UserLoginDto) => {
     const { email, password } = data
-    login({ email, password })
+    loginMutation({ email, password })
   }
 
   return (

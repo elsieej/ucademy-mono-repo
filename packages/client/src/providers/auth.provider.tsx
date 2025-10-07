@@ -1,57 +1,55 @@
-import type { UserLoginResponseSchema, UserResponseSchema } from '@elsie/models'
-import { createContext, type PropsWithChildren, use, useState } from 'react'
+import { getItemFromStorage, removeItemFromStorage, setItemToStorage } from '@/lib/storage'
+import type { TokenResponseSchema, UserLoginResponseSchema, UserResponseSchema } from '@elsie/models'
+import { createContext, type PropsWithChildren, use, useCallback, useState } from 'react'
 
 export type AuthState = {
+  isAuthenticated: boolean
   accessToken: string | null
   refreshToken: string | null
   user: UserResponseSchema | null
-  isAuthenticated: boolean
 
-  login: (rs: UserLoginResponseSchema) => void
+  updateUser: (user: UserResponseSchema | null) => void
+  updateToken: (tokens: TokenResponseSchema) => void
+  login: (user: UserLoginResponseSchema) => void
   logout: () => void
-  updateUser: (user: UserResponseSchema) => void
-  setAccessToken: (token: string) => void
-  setRefreshToken: (token: string) => void
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined)
 
 const AuthProvider = ({ children }: PropsWithChildren) => {
   const [user, setUser] = useState<UserResponseSchema | null>(null)
-  const [accessToken, setAccessToken] = useState(() => localStorage.getItem('accessToken') || null)
-  const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem('refreshToken') || null)
+  const [accessToken, setAccessToken] = useState(() => getItemFromStorage('ACCESS_TOKEN') || null)
+  const [refreshToken, setRefreshToken] = useState(() => getItemFromStorage('REFRESH_TOKEN') || null)
 
-  const updateUser = (user: UserResponseSchema) => {
-    setUser(user)
-  }
-
-  const login = (rs: UserLoginResponseSchema) => {
+  const login = useCallback((rs: UserLoginResponseSchema) => {
     setAccessToken(rs.accessToken)
     setRefreshToken(rs.refreshToken)
     setUser(rs.user)
 
-    localStorage.setItem('accessToken', rs.accessToken)
-    localStorage.setItem('refreshToken', rs.refreshToken)
-  }
+    setItemToStorage('ACCESS_TOKEN', rs.accessToken)
+    setItemToStorage('REFRESH_TOKEN', rs.refreshToken)
+  }, [])
 
-  const logout = () => {
+  const updateToken = useCallback((tokens: TokenResponseSchema) => {
+    setAccessToken(tokens.accessToken)
+    setRefreshToken(tokens.refreshToken)
+
+    setItemToStorage('ACCESS_TOKEN', tokens.accessToken)
+    setItemToStorage('REFRESH_TOKEN', tokens.refreshToken)
+  }, [])
+
+  const updateUser = useCallback((user: UserResponseSchema | null) => {
+    setUser(user)
+  }, [])
+
+  const logout = useCallback(() => {
     setAccessToken(null)
     setRefreshToken(null)
     setUser(null)
 
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('refreshToken')
-  }
-
-  const updateAccessToken = (token: string) => {
-    setAccessToken(token)
-    localStorage.setItem('accessToken', token)
-  }
-
-  const updateRefreshToken = (token: string) => {
-    setRefreshToken(token)
-    localStorage.setItem('refreshToken', token)
-  }
+    removeItemFromStorage('ACCESS_TOKEN')
+    removeItemFromStorage('REFRESH_TOKEN')
+  }, [])
 
   const isAuthenticated = user !== null
 
@@ -59,14 +57,14 @@ const AuthProvider = ({ children }: PropsWithChildren) => {
     <AuthContext.Provider
       value={{
         isAuthenticated,
-        user,
         accessToken,
         refreshToken,
-        login,
-        logout,
+
+        user,
         updateUser,
-        setAccessToken: updateAccessToken,
-        setRefreshToken: updateRefreshToken
+        updateToken,
+        login,
+        logout
       }}
     >
       {children}

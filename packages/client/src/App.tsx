@@ -1,15 +1,18 @@
-import { createRouter, RouterProvider, useLocation } from '@tanstack/react-router'
+import { createRouter, RouterProvider, useRouter } from '@tanstack/react-router'
 import { useAuth } from './providers/auth.provider'
 // Import the generated route tree
 import { Toaster } from '@/components/ui/sonner'
 import type { AppRouter } from '@elsie/server'
 import { QueryClient, QueryClientProvider, type QueryKey } from '@tanstack/react-query'
 import { createTRPCClient, httpBatchLink, loggerLink } from '@trpc/client'
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, type PropsWithChildren } from 'react'
 import superjson from 'superjson'
 import { config } from './constants/config'
 import { TRPCProvider } from './lib/trpc'
 import { routeTree } from './routeTree.gen'
+import type { TokenResponseSchema } from '@elsie/models'
+import { useAuthGetMeQuery } from './hooks/apis/use-auth.api'
+import { getItemFromStorage, setItemToStorage } from './lib/storage'
 
 // Create a new router instance
 const router = createRouter({
@@ -82,7 +85,7 @@ const createTRPCClientWithAuth = (
 
           // Handle 401 - Token expired
           if (response.status === 401 && onTokenRefresh) {
-            const refreshToken = localStorage.getItem('refreshToken')
+            const refreshToken = getItemFromStorage('REFRESH_TOKEN')
             if (!refreshToken) {
               // No refresh token, redirect to login
               return response
@@ -104,8 +107,8 @@ const createTRPCClientWithAuth = (
 
               // Update tokens
               onTokenRefresh(newTokens)
-              localStorage.setItem('accessToken', newTokens.accessToken)
-              localStorage.setItem('refreshToken', newTokens.refreshToken)
+              setItemToStorage('ACCESS_TOKEN', newTokens.accessToken)
+              setItemToStorage('REFRESH_TOKEN', newTokens.refreshToken)
 
               // Retry original request with new token
               return fetch(url, {
@@ -129,8 +132,38 @@ const createTRPCClientWithAuth = (
   })
 }
 
+// Component that runs inside TRPCProvider to fetch user
+const AuthInitializer = ({ children }: PropsWithChildren) => {
+  const auth = useAuth()
+
+  // Fetch current user on mount to validate token
+  const { data: currentUser, isError } = useAuthGetMeQuery({
+    enabled: !!auth.accessToken, // Only fetch if we have a token
+    retry: false, // Don't retry on 401
+    staleTime: Infinity // Don't refetch automatically
+  })
+
+  // Update auth state when user is fetched
+  useEffect(() => {
+    if (currentUser) {
+      auth.updateUser(currentUser)
+      router.navigate({ to: '/' })
+    }
+  }, [currentUser, auth])
+
+  // Handle authentication errors
+  useEffect(() => {
+    if (isError) {
+      // If token is invalid, logout and redirect to login
+      auth.logout()
+      router.navigate({ to: '/auth/login', search: { redirect: '/' } })
+    }
+  }, [isError, auth])
+
+  return <>{children}</>
+}
+
 const App = () => {
-  const location = useLocation()
   const queryClient = getQueryClient()
   const auth = useAuth()
 
@@ -139,18 +172,17 @@ const App = () => {
   getTokenRef.current = () => auth.accessToken
 
   // Stable reference to token refresh callback
-  const onTokenRefreshRef = useRef<(tokens: { accessToken: string; refreshToken: string }) => void>(() => {})
+  const onTokenRefreshRef = useRef<(tokens: TokenResponseSchema) => void>(() => {})
   onTokenRefreshRef.current = (tokens) => {
     // Update auth state with new tokens
-    auth.setAccessToken(tokens.accessToken)
-    auth.setRefreshToken(tokens.refreshToken)
+    auth.updateToken(tokens)
   }
 
   // Stable reference to auth failure callback
   const onAuthFailureRef = useRef<() => void>(() => {})
   onAuthFailureRef.current = () => {
     auth.logout()
-    router.navigate({ to: '/auth/login', search: { redirect: location.pathname } })
+    router.navigate({ to: '/auth/login', search: { redirect: '/' } })
   }
 
   // Create tRPC client once (never recreates)
@@ -167,8 +199,10 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
-        <RouterProvider router={router} context={{ auth }} />
-        <Toaster />
+        <AuthInitializer>
+          <RouterProvider router={router} context={{ auth }} />
+          <Toaster />
+        </AuthInitializer>
       </TRPCProvider>
     </QueryClientProvider>
   )
