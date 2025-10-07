@@ -1,4 +1,4 @@
-import { createRouter, RouterProvider, useRouter } from '@tanstack/react-router'
+import { createRouter, RouterProvider } from '@tanstack/react-router'
 import { useAuth } from './providers/auth.provider'
 // Import the generated route tree
 import { Toaster } from '@/components/ui/sonner'
@@ -10,14 +10,14 @@ import superjson from 'superjson'
 import { config } from './constants/config'
 import { TRPCProvider } from './lib/trpc'
 import { routeTree } from './routeTree.gen'
-import type { TokenResponseSchema } from '@elsie/models'
 import { useAuthGetMeQuery } from './hooks/apis/use-auth.api'
-import { getItemFromStorage, setItemToStorage } from './lib/storage'
+import { setItemToStorage } from './lib/storage'
 
 // Create a new router instance
 const router = createRouter({
   routeTree,
-  context: undefined!
+  context: undefined!,
+  scrollRestoration: true
 })
 
 // Register the router instance for type safety
@@ -63,11 +63,7 @@ function getQueryClient() {
   }
 }
 
-const createTRPCClientWithAuth = (
-  getToken: () => string | null,
-  onTokenRefresh?: (tokens: { accessToken: string; refreshToken: string }) => void,
-  onAuthFailure?: () => void
-) => {
+const createTRPCClientWithAuth = (getToken: () => string | null) => {
   return createTRPCClient<AppRouter>({
     links: [
       loggerLink({
@@ -79,53 +75,6 @@ const createTRPCClientWithAuth = (
         headers: () => {
           const token = getToken()
           return token ? { Authorization: `Bearer ${token}` } : {}
-        },
-        fetch: async (url, options = {}) => {
-          const response = await fetch(url, options)
-
-          // Handle 401 - Token expired
-          if (response.status === 401 && onTokenRefresh) {
-            const refreshToken = getItemFromStorage('REFRESH_TOKEN')
-            if (!refreshToken) {
-              // No refresh token, redirect to login
-              return response
-            }
-
-            try {
-              // Create temporary client for refresh (without auth)
-              const tempClient = createTRPCClient<AppRouter>({
-                links: [
-                  httpBatchLink({
-                    url: config.VITE_API_URL,
-                    transformer: superjson
-                  })
-                ]
-              })
-
-              // Try to refresh token
-              const newTokens = await tempClient.auth.refresh.mutate({ refreshToken })
-
-              // Update tokens
-              onTokenRefresh(newTokens)
-              setItemToStorage('ACCESS_TOKEN', newTokens.accessToken)
-              setItemToStorage('REFRESH_TOKEN', newTokens.refreshToken)
-
-              // Retry original request with new token
-              return fetch(url, {
-                ...options,
-                headers: {
-                  ...options.headers,
-                  Authorization: `Bearer ${newTokens.accessToken}`
-                }
-              })
-            } catch {
-              // Refresh failed, clear tokens and trigger logout
-              onAuthFailure?.()
-              return response
-            }
-          }
-
-          return response
         }
       })
     ]
@@ -135,28 +84,91 @@ const createTRPCClientWithAuth = (
 // Component that runs inside TRPCProvider to fetch user
 const AuthInitializer = ({ children }: PropsWithChildren) => {
   const auth = useAuth()
+  const hasTriedRefresh = useRef(false)
+
+  // Reset refresh attempt when access token changes
+  useEffect(() => {
+    if (auth.accessToken) {
+      hasTriedRefresh.current = false
+    }
+  }, [auth.accessToken])
+
+  // Try to refresh token if we have refresh token but no access token
+  useEffect(() => {
+    if (hasTriedRefresh.current) return
+
+    const tryRefresh = async () => {
+      if (!auth.accessToken && auth.refreshToken) {
+        hasTriedRefresh.current = true
+        try {
+          // Create temporary client for refresh
+          const tempClient = createTRPCClient<AppRouter>({
+            links: [
+              httpBatchLink({
+                url: config.VITE_API_URL,
+                transformer: superjson
+              })
+            ]
+          })
+
+          // Try to refresh token
+          const newTokens = await tempClient.auth.refresh.mutate({ refreshToken: auth.refreshToken })
+
+          // Update tokens
+          auth.updateToken(newTokens)
+          setItemToStorage('ACCESS_TOKEN', newTokens.accessToken)
+          setItemToStorage('REFRESH_TOKEN', newTokens.refreshToken)
+        } catch {
+          // Refresh failed, logout
+          auth.updateLoading(false)
+          auth.logout()
+        }
+      } else if (!auth.accessToken && !auth.refreshToken) {
+        // No tokens at all, stop loading
+        auth.updateLoading(false)
+      }
+    }
+
+    tryRefresh()
+  }, [auth])
 
   // Fetch current user on mount to validate token
-  const { data: currentUser, isError } = useAuthGetMeQuery({
+  const {
+    data: currentUser,
+    isError,
+    isFetching
+  } = useAuthGetMeQuery({
     enabled: !!auth.accessToken, // Only fetch if we have a token
     retry: false, // Don't retry on 401
     staleTime: Infinity // Don't refetch automatically
   })
 
-  // Update auth state when user is fetched
+  // Manage loading state based on fetch status
+  useEffect(() => {
+    if (auth.accessToken) {
+      auth.updateLoading(isFetching)
+    }
+  }, [isFetching, auth.accessToken, auth])
+
+  // Update auth state when user is fetched successfully
   useEffect(() => {
     if (currentUser) {
       auth.updateUser(currentUser)
-      router.navigate({ to: '/' })
     }
   }, [currentUser, auth])
 
-  // Handle authentication errors
+  // Handle authentication errors - only if no refresh token available
   useEffect(() => {
-    if (isError) {
-      // If token is invalid, logout and redirect to login
-      auth.logout()
-      router.navigate({ to: '/auth/login', search: { redirect: '/' } })
+    if (isError && auth.accessToken) {
+      const refreshToken = auth.refreshToken
+
+      // If there's no refresh token, immediately logout
+      // Otherwise, let the fetch handler try to refresh
+      if (!refreshToken) {
+        auth.updateLoading(false)
+        auth.logout()
+        router.navigate({ to: '/auth/login' })
+      }
     }
   }, [isError, auth])
 
@@ -171,30 +183,8 @@ const App = () => {
   const getTokenRef = useRef<() => string | null>(() => auth.accessToken)
   getTokenRef.current = () => auth.accessToken
 
-  // Stable reference to token refresh callback
-  const onTokenRefreshRef = useRef<(tokens: TokenResponseSchema) => void>(() => {})
-  onTokenRefreshRef.current = (tokens) => {
-    // Update auth state with new tokens
-    auth.updateToken(tokens)
-  }
-
-  // Stable reference to auth failure callback
-  const onAuthFailureRef = useRef<() => void>(() => {})
-  onAuthFailureRef.current = () => {
-    auth.logout()
-    router.navigate({ to: '/auth/login', search: { redirect: '/' } })
-  }
-
   // Create tRPC client once (never recreates)
-  const trpcClient = useMemo(
-    () =>
-      createTRPCClientWithAuth(
-        () => getTokenRef.current(),
-        (tokens) => onTokenRefreshRef.current?.(tokens),
-        () => onAuthFailureRef.current()
-      ),
-    []
-  )
+  const trpcClient = useMemo(() => createTRPCClientWithAuth(() => getTokenRef.current()), [])
 
   return (
     <QueryClientProvider client={queryClient}>

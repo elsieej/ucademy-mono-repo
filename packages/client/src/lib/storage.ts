@@ -2,16 +2,19 @@ import { STORAGE_KEY_CONFIG } from '@/constants/storage-key.config'
 
 type StorageKey = keyof typeof STORAGE_KEY_CONFIG
 
-const getItemFromStorage = (key: StorageKey) => {
-  return localStorage.getItem(key)
+const getItemFromStorage = (key: StorageKey): string | null => {
+  const storageKey = STORAGE_KEY_CONFIG[key]
+  return localStorage.getItem(storageKey)
 }
 
 const setItemToStorage = (key: StorageKey, value: string) => {
-  localStorage.setItem(key, value)
+  const storageKey = STORAGE_KEY_CONFIG[key]
+  localStorage.setItem(storageKey, value)
 }
 
 const removeItemFromStorage = (key: StorageKey) => {
-  localStorage.removeItem(key)
+  const storageKey = STORAGE_KEY_CONFIG[key]
+  localStorage.removeItem(storageKey)
 }
 
 const clearAllItemsFromStorage = () => {

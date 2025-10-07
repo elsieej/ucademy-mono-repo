@@ -23,8 +23,11 @@ Modern React frontend application for the Elsie platform with end-to-end type sa
 src/
 ├── assets/             # Static assets (images, icons)
 ├── components/         # Reusable components
+│   ├── custom/         # Custom components
+│   │   └── header-navigation.component.tsx
 │   └── ui/             # shadcn/ui components
 ├── constants/          # App configuration
+│   └── config.ts       # API URL configuration
 ├── features/           # Feature-based modules
 │   ├── auth/           # Authentication features
 │   │   ├── login/      # Login feature
@@ -37,18 +40,23 @@ src/
 │       ├── use-auth.api.ts
 │       └── use-health.api.ts
 ├── lib/                # Utility functions
+│   ├── storage.ts      # localStorage utilities
+│   ├── trpc.ts         # tRPC client hook
+│   └── utils.ts        # General utilities
 ├── providers/          # React context providers
 │   └── auth.provider.tsx  # Authentication context
 ├── routes/             # File-based routes (TanStack Router)
-│   ├── __root.tsx      # Root layout with context
-│   ├── auth/           # Auth routes
-│   │   ├── route.tsx   # Auth layout
-│   │   ├── login.tsx   # Login page
-│   │   └── register.tsx # Register page
-│   ├── index.tsx       # Home page
-│   └── about.tsx       # About page
+│   ├── __root.tsx      # Root layout with router context
+│   ├── _authenticated/ # Protected routes layout
+│   │   ├── route.tsx   # Auth guard with header navigation
+│   │   ├── index.tsx   # Home page (protected)
+│   │   └── about.tsx   # About page (protected)
+│   └── auth/           # Auth routes (login/register)
+│       ├── route.tsx   # Auth layout with redirect guard
+│       ├── login.tsx   # Login page
+│       └── register.tsx # Register page
 ├── routeTree.gen.ts    # Auto-generated route tree
-├── App.tsx             # App component with router
+├── App.tsx             # App component with tRPC & auth initialization
 ├── main.tsx            # Application entry point
 └── index.css           # Global styles (Tailwind CSS)
 ```
@@ -86,6 +94,209 @@ pnpm lint
 
 # Format code
 pnpm format
+```
+
+## 🔐 Authentication System
+
+Complete JWT-based authentication with the following features:
+
+### Core Features
+
+- ✅ **AuthProvider** - Centralized authentication state management
+- ✅ **Protected Routes** - Automatic redirect for unauthenticated users
+- ✅ **Auth Route Guards** - Redirects authenticated users away from login/register
+- ✅ **No Flash Issues** - Prevents login form from flashing before redirects
+- ✅ **Auto Token Refresh** - Seamless token refresh on 401 responses
+- ✅ **Smart Redirects** - Preserves original URL when redirecting to login
+- ✅ **Header Navigation** - Common navigation component for authenticated users
+- ✅ **Storage Utilities** - Type-safe localStorage wrappers
+- ✅ **Logout Flow** - Graceful logout with cleanup
+
+### AuthProvider
+
+Central authentication context that manages auth state:
+
+```typescript
+// src/providers/auth.provider.tsx
+export const AuthProvider = ({ children }: PropsWithChildren) => {
+  const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [refreshToken, setRefreshToken] = useState<string | null>(null)
+  const [user, setUser] = useState<UserResponseSchema | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isInitialized, setIsInitialized] = useState(false)
+
+  // Auto-load tokens from localStorage on mount
+  useEffect(() => {
+    const storedAccessToken = getItemFromStorage('accessToken')
+    const storedRefreshToken = getItemFromStorage('refreshToken')
+    if (storedAccessToken) setAccessToken(storedAccessToken)
+    if (storedRefreshToken) setRefreshToken(storedRefreshToken)
+    setIsInitialized(true)
+  }, [])
+
+  const logout = useCallback(() => {
+    setAccessToken(null)
+    setRefreshToken(null)
+    setUser(null)
+    removeItemFromStorage('accessToken')
+    removeItemFromStorage('refreshToken')
+  }, [])
+
+  const isAuthenticated = Boolean(accessToken && user)
+
+  return (
+    <AuthContext.Provider value={{
+      accessToken, setAccessToken,
+      refreshToken, setRefreshToken,
+      user, setUser,
+      isAuthenticated,
+      isLoading, setIsLoading,
+      isInitialized,
+      logout
+    }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export const useAuth = () => {
+  const context = use(AuthContext)
+  if (!context) throw new Error('useAuth must be used within AuthProvider')
+  return context
+}
+```
+
+### Protected Routes
+
+Protected routes use the `_authenticated` layout that automatically redirects unauthenticated users:
+
+```typescript
+// src/routes/_authenticated/route.tsx
+export const Route = createFileRoute('/_authenticated')({
+  beforeLoad: async ({ context, location }) => {
+    if (!context.auth?.isAuthenticated) {
+      // Redirect to login with original URL preserved
+      throw redirect({
+        to: '/auth/login',
+        search: { redirect: location.pathname }
+      })
+    }
+  },
+  component: AuthenticatedLayout
+})
+
+function AuthenticatedLayout() {
+  return (
+    <>
+      <HeaderNavigation />
+      <Outlet />
+    </>
+  )
+}
+```
+
+### Auth Route Guards
+
+Auth routes (login/register) redirect authenticated users away:
+
+```typescript
+// src/routes/auth/route.tsx
+export const Route = createFileRoute('/auth')({
+  component: AuthRoute
+})
+
+function AuthRoute() {
+  const auth = useAuth()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    // Redirect authenticated users away
+    if (!auth.isLoading && auth.isAuthenticated) {
+      navigate({ to: '/' })
+    }
+  }, [auth.isAuthenticated, auth.isLoading, navigate])
+
+  // Prevent flash of login form
+  if (auth.isLoading || auth.isAuthenticated) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <p>{auth.isLoading ? 'Checking authentication...' : 'Redirecting...'}</p>
+      </div>
+    )
+  }
+
+  return <Outlet />
+}
+```
+
+### Storage Utilities
+
+Type-safe localStorage helpers:
+
+```typescript
+// src/lib/storage.ts
+export const getItemFromStorage = <T = string>(key: string): T | null => {
+  const item = localStorage.getItem(key)
+  return item ? (item as T) : null
+}
+
+export const setItemToStorage = <T = string>(key: string, value: T): void => {
+  localStorage.setItem(key, String(value))
+}
+
+export const removeItemFromStorage = (key: string): void => {
+  localStorage.removeItem(key)
+}
+```
+
+### Authentication Flow
+
+**Complete Login Flow:**
+
+```
+1. User enters credentials
+2. Login mutation called
+3. Tokens received from server
+4. AuthProvider updates state
+5. Tokens saved to localStorage
+6. User data fetched with getMe query
+7. Router redirects to intended page
+```
+
+**Complete Logout Flow:**
+
+```
+1. User clicks logout
+2. auth.logout() called
+3. Tokens cleared from state
+4. Tokens removed from localStorage
+5. User state cleared
+6. Router redirects to login
+```
+
+**Token Refresh Flow:**
+
+```
+1. API request returns 401
+2. tRPC client intercepts response
+3. Attempts token refresh
+4. On success: Updates tokens and retries request
+5. On failure: Calls logout and redirects to login
+```
+
+### Header Navigation
+
+Common navigation component for authenticated users:
+
+```typescript
+// Included in _authenticated layout
+<HeaderNavigation />
+
+// Features:
+// - Displays current user info
+// - Logout button
+// - Navigation links
+// - Profile dropdown
 ```
 
 ## 🌐 Development Server
@@ -455,13 +666,30 @@ export const Route = createFileRoute('/auth/login')({
 
 Routes are automatically generated from the file structure:
 
-- `src/routes/__root.tsx` → Root layout with context
-- `src/routes/index.tsx` → `/`
-- `src/routes/auth/route.tsx` → `/auth` (layout)
+**Root & Context:**
+
+- `src/routes/__root.tsx` → Root layout with auth context
+
+**Public Routes (Auth):**
+
+- `src/routes/auth/route.tsx` → `/auth` (layout with redirect guard)
 - `src/routes/auth/login.tsx` → `/auth/login`
 - `src/routes/auth/register.tsx` → `/auth/register`
 
+**Protected Routes (Authenticated):**
+
+- `src/routes/_authenticated/route.tsx` → `/_authenticated` (protected layout)
+- `src/routes/_authenticated/index.tsx` → `/` (home page)
+- `src/routes/_authenticated/about.tsx` → `/about`
+
 Run `pnpm tsr:watch` during development for auto-generation.
+
+**Route Naming Conventions:**
+
+- `_authenticated/` → Protected routes prefix (requires authentication)
+- `auth/` → Public auth routes (login/register)
+- `route.tsx` → Layout route
+- `index.tsx` → Index route for that path
 
 ### Naming Conventions
 

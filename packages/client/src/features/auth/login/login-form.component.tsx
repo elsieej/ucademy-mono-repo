@@ -7,14 +7,17 @@ import { useAuthLoginMutation } from '@/hooks/apis/use-auth.api'
 import { useAuth } from '@/providers/auth.provider'
 import { type UserLoginDto, userLoginDto } from '@elsie/models'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useNavigate } from '@tanstack/react-router'
 import { useId } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
 const LoginFormComponent = () => {
   const { login } = useAuth()
+  const navigate = useNavigate()
   const emailInputId = useId()
   const passwordInputId = useId()
+
   const { mutate: loginMutation, isPending } = useAuthLoginMutation({
     meta: {
       successMessage: 'User logged in successfully',
@@ -23,6 +26,9 @@ const LoginFormComponent = () => {
     onSuccess(data, _1, _2, context) {
       toast.success(context.meta?.successMessage)
       login(data)
+      form.reset()
+      // Navigate to home page
+      navigate({ to: '/' })
     },
     onError(_1, _2, _3, context) {
       toast.error(context.meta?.errorMessage)

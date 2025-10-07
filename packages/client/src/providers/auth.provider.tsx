@@ -4,10 +4,12 @@ import { createContext, type PropsWithChildren, use, useCallback, useState } fro
 
 export type AuthState = {
   isAuthenticated: boolean
+  isLoading: boolean
   accessToken: string | null
   refreshToken: string | null
   user: UserResponseSchema | null
 
+  updateLoading: (loading: boolean) => void
   updateUser: (user: UserResponseSchema | null) => void
   updateToken: (tokens: TokenResponseSchema) => void
   login: (user: UserLoginResponseSchema) => void
@@ -20,11 +22,18 @@ const AuthProvider = ({ children }: PropsWithChildren) => {
   const [user, setUser] = useState<UserResponseSchema | null>(null)
   const [accessToken, setAccessToken] = useState(() => getItemFromStorage('ACCESS_TOKEN') || null)
   const [refreshToken, setRefreshToken] = useState(() => getItemFromStorage('REFRESH_TOKEN') || null)
+  // Start with loading true if we have any token (need to verify/refresh it)
+  const [isLoading, setIsLoading] = useState(() => {
+    const hasAccessToken = !!getItemFromStorage('ACCESS_TOKEN')
+    const hasRefreshToken = !!getItemFromStorage('REFRESH_TOKEN')
+    return hasAccessToken || hasRefreshToken
+  })
 
   const login = useCallback((rs: UserLoginResponseSchema) => {
     setAccessToken(rs.accessToken)
     setRefreshToken(rs.refreshToken)
     setUser(rs.user)
+    setIsLoading(false) // Auth complete
 
     setItemToStorage('ACCESS_TOKEN', rs.accessToken)
     setItemToStorage('REFRESH_TOKEN', rs.refreshToken)
@@ -46,21 +55,25 @@ const AuthProvider = ({ children }: PropsWithChildren) => {
     setAccessToken(null)
     setRefreshToken(null)
     setUser(null)
+    setIsLoading(false) // Clear loading state on logout
 
     removeItemFromStorage('ACCESS_TOKEN')
     removeItemFromStorage('REFRESH_TOKEN')
   }, [])
 
-  const isAuthenticated = user !== null
+  const updateLoading = useCallback((loading: boolean) => {
+    setIsLoading(loading)
+  }, [])
 
   return (
     <AuthContext.Provider
       value={{
-        isAuthenticated,
+        isAuthenticated: user !== null,
+        isLoading,
         accessToken,
         refreshToken,
-
         user,
+        updateLoading,
         updateUser,
         updateToken,
         login,

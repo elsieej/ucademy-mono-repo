@@ -1,16 +1,7 @@
 import LoginFormComponent from '@/features/auth/login/login-form.component'
-import { createFileRoute, Link, redirect } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/auth/login')({
-  validateSearch: (search) => ({
-    redirect: (search.redirect as string) || '/'
-  }),
-  beforeLoad: ({ context, search }) => {
-    // Redirect if already authenticated
-    if (context.auth.isAuthenticated) {
-      throw redirect({ to: search.redirect })
-    }
-  },
   component: Login
 })
 
@@ -26,7 +17,7 @@ function Login() {
 
       <p className='text-center text-sm text-muted-foreground mt-6'>
         Don't have an account?{' '}
-        <Link to='/auth/register' search={{ redirect: '/' }} className='font-medium text-foreground hover:underline'>
+        <Link to='/auth/register' className='font-medium text-foreground hover:underline'>
           Sign up
         </Link>
       </p>
